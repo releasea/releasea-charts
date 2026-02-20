@@ -1,0 +1,44 @@
+apiVersion: v1
+entries:
+  releasea-platform:
+  - apiVersion: v2
+    appVersion: gff2b52f6
+    created: "2026-02-20T12:04:27.078594947Z"
+    dependencies:
+    - alias: worker
+      condition: worker.enabled
+      name: releasea-worker
+      repository: file://../releasea-worker
+      version: 0.1.0
+    - alias: istio-base
+      condition: istio.enabled
+      name: base
+      repository: https://istio-release.storage.googleapis.com/charts
+      version: '>=0.0.0'
+    - alias: istiod
+      condition: istio.enabled
+      name: istiod
+      repository: https://istio-release.storage.googleapis.com/charts
+      version: '>=0.0.0'
+    - alias: istio-ingress
+      condition: istio.enabled
+      name: gateway
+      repository: https://istio-release.storage.googleapis.com/charts
+      version: '>=0.0.0'
+    description: Install the full Releasea platform with optional peripheral services
+    digest: 4b8d42185349b904e105c1cc68723450ea7dfe990372648c4ff21650f642438a
+    name: releasea-platform
+    urls:
+    - https://github.com/releasea/releasea-charts/releases/download/v1.0.0/releasea-platform-1.0.0.tgz
+    version: 1.0.0
+  releasea-worker:
+  - apiVersion: v2
+    appVersion: gff2b52f6
+    created: "2026-02-20T12:04:27.078978981Z"
+    description: Releasea worker agent deployed via Helm
+    digest: 8792b8b7ffac77f62ab8d68c73e7711d89846ec70fe302257c23adfa8d7b371e
+    name: releasea-worker
+    urls:
+    - https://github.com/releasea/releasea-charts/releases/download/v1.0.0/releasea-worker-1.0.0.tgz
+    version: 1.0.0
+generated: "2026-02-20T12:04:27.071919314Z"
