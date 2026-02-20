@@ -1,0 +1,19 @@
+{{- if and .Values.rbac.create .Values.serviceAccount.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "releasea-worker.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "releasea-worker.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+rules:
+  {{- if .Values.rbac.clusterAdmin }}
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+  - nonResourceURLs: ["*"]
+    verbs: ["*"]
+  {{- else }}
+  {{- toYaml .Values.rbac.rules | nindent 2 }}
+  {{- end }}
+{{- end }}

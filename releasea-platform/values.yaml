@@ -1,0 +1,150 @@
+global:
+  imageTag: latest
+  imagePullPolicy: IfNotPresent
+
+istio:
+  enabled: true
+  namespace: istio-system
+  gatewaySelector:
+    istio: ingressgateway
+  gateways:
+    internal:
+      host: "*.releasea.internal"
+    external:
+      host: "*.releasea.external"
+  https:
+    enabled: false
+    credentialName: releasea-local-cert
+    secret:
+      # existingSecret | selfSigned | inline
+      mode: existingSecret
+      namespace: ""
+      inlineCrt: ""
+      inlineKey: ""
+    selfSigned:
+      commonName: "*.releasea.external"
+      altNames:
+        - "*.releasea.internal"
+        - "*.releasea.external"
+        - "releasea.internal"
+        - "releasea.external"
+      days: 365
+  envoyPodMonitor:
+    enabled: true
+    namespace: monitoring
+    interval: 15s
+
+api:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: releasea/releasea-api
+    tag: ""
+  service:
+    type: ClusterIP
+    port: 8070
+  env:
+    PORT: "8070"
+    MONGO_URI: mongodb://releasea-mongodb:27017/releasea
+    RABBITMQ_URL: amqp://releasea:releasea@releasea-rabbitmq:5672/
+
+console:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: releasea/releasea-console
+    tag: ""
+  service:
+    type: ClusterIP
+    port: 8080
+  ingress:
+    enabled: false
+    className: ""
+    host: ""
+    path: /
+
+worker:
+  enabled: true
+  image:
+    repository: releasea/releasea-worker
+    tag: ""
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  token: ""
+  environment: production
+  namespacePrefix: releasea-apps
+  worker:
+    name: releasea-worker
+    queueName: releasea.worker
+    heartbeatSeconds: 30
+    dockerBuildNetwork: host
+  api:
+    baseUrl: http://releasea-api:8070/api/v1
+  rabbitmq:
+    url: amqp://releasea:releasea@releasea-rabbitmq:5672/
+  minio:
+    endpoint: releasea-minio:9000
+    accessKey: releasea
+    secretKey: releaseaadmin
+    bucket: releasea-static
+    secure: false
+
+mongodb:
+  enabled: true
+  image: mongo:7
+  service:
+    port: 27017
+  persistence:
+    enabled: true
+    size: 8Gi
+
+rabbitmq:
+  enabled: true
+  image: rabbitmq:3.13-management
+  service:
+    amqpPort: 5672
+    managementPort: 15672
+  auth:
+    username: releasea
+    password: releasea
+
+minio:
+  enabled: true
+  image: minio/minio:latest
+  service:
+    apiPort: 9000
+    consolePort: 9001
+  accessKey: releasea
+  secretKey: releaseaadmin
+  bucket: releasea-static
+  persistence:
+    enabled: true
+    size: 10Gi
+
+prometheus:
+  enabled: true
+  image: prom/prometheus:v2.55.1
+  retention: 6h
+  scrapeInterval: 30s
+  evaluationInterval: 30s
+  serviceMonitorSelectorNilUsesHelmValues: false
+  podMonitorSelectorNilUsesHelmValues: false
+  service:
+    port: 9090
+  resources: {}
+
+loki:
+  enabled: true
+  isDefault: true
+  image: grafana/loki:3.1.1
+  persistence:
+    enabled: false
+    size: 10Gi
+  service:
+    port: 3100
+  promtail:
+    enabled: true
+    image: grafana/promtail:3.1.1
+  grafana:
+    enabled: false
+  resources: {}

@@ -1,0 +1,185 @@
+name: Publish Helm Repository
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "releasea-platform/**"
+      - "releasea-worker/**"
+      - ".github/workflows/release-charts.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: releasea-charts-publish
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.15.4
+
+      - name: Compute chart metadata
+        id: meta
+        run: |
+          set -euo pipefail
+
+          semver_bump_type() {
+            local msg="$1"
+            if printf '%s' "${msg}" | grep -Eiq 'BREAKING[ _-]CHANGE'; then
+              echo "major"
+              return 0
+            fi
+            if printf '%s' "${msg}" | grep -Eq '^[a-zA-Z0-9_-]+(\([^)]+\))?!:'; then
+              echo "major"
+              return 0
+            fi
+            if printf '%s' "${msg}" | grep -Eiq '\[semver:major\]'; then
+              echo "major"
+              return 0
+            fi
+            if printf '%s' "${msg}" | grep -Eiq '\[semver:minor\]'; then
+              echo "minor"
+              return 0
+            fi
+            if printf '%s' "${msg}" | grep -Eq '^feat(\([^)]+\))?:'; then
+              echo "minor"
+              return 0
+            fi
+            echo "patch"
+          }
+
+          semver_next() {
+            local current="$1"
+            local bump="$2"
+            local core major minor patch
+            core="${current#v}"
+            IFS='.' read -r major minor patch <<< "${core}"
+            case "${bump}" in
+              major)
+                major=$((major + 1)); minor=0; patch=0
+                ;;
+              minor)
+                minor=$((minor + 1)); patch=0
+                ;;
+              *)
+                patch=$((patch + 1))
+                ;;
+            esac
+            echo "v${major}.${minor}.${patch}"
+          }
+
+          git fetch --tags --force >/dev/null 2>&1 || true
+          latest_tag="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n1)"
+          if [ -z "${latest_tag}" ]; then
+            latest_tag="v1.0.0"
+          fi
+
+          commit_msg="$(git log -1 --pretty=%B)"
+          bump="$(semver_bump_type "${commit_msg}")"
+          if [ "${latest_tag}" = "v1.0.0" ] && ! git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | grep -q .; then
+            release_tag="v1.0.0"
+          else
+            release_tag="$(semver_next "${latest_tag}" "${bump}")"
+          fi
+
+          CHART_VERSION="${release_tag#v}"
+          APP_VERSION="g${GITHUB_SHA::8}"
+          RELEASE_TAG="${release_tag}"
+          BUMP="${bump}"
+
+          echo "chart_version=${CHART_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "app_version=${APP_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "bump=${BUMP}" >> "$GITHUB_OUTPUT"
+
+      - name: Build dependencies
+        run: |
+          set -euo pipefail
+          helm dependency build ./releasea-platform
+          if [ -f ./releasea-worker/Chart.yaml ]; then
+            helm dependency build ./releasea-worker || true
+          fi
+
+      - name: Package charts
+        run: |
+          set -euo pipefail
+          mkdir -p .dist
+          CHART_VERSION="${{ steps.meta.outputs.chart_version }}"
+          APP_VERSION="${{ steps.meta.outputs.app_version }}"
+
+          helm package ./releasea-worker \
+            --destination .dist \
+            --version "${CHART_VERSION}" \
+            --app-version "${APP_VERSION}"
+          helm package ./releasea-platform \
+            --destination .dist \
+            --version "${CHART_VERSION}" \
+            --app-version "${APP_VERSION}"
+
+      - name: Configure Git
+        run: |
+          git config user.name "releasea-bot"
+          git config user.email "releasea-bot@releasea.io"
+
+      - name: Create or update chart release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="${{ steps.meta.outputs.release_tag }}"
+          title="${tag}"
+          notes="Automated Helm chart release for commit ${GITHUB_SHA::8}."
+
+          if gh release view "${tag}" >/dev/null 2>&1; then
+            gh release upload "${tag}" .dist/*.tgz --clobber
+          else
+            gh release create "${tag}" .dist/*.tgz \
+              --title "${title}" \
+              --notes "${notes}"
+          fi
+
+      - name: Build index.yaml
+        run: |
+          set -euo pipefail
+          tag="${{ steps.meta.outputs.release_tag }}"
+          if [ -f index.yaml ]; then
+            cp -f index.yaml .dist/index.yaml
+            helm repo index .dist \
+              --url "https://github.com/${{ github.repository }}/releases/download/${tag}" \
+              --merge .dist/index.yaml
+          else
+            helm repo index .dist \
+              --url "https://github.com/${{ github.repository }}/releases/download/${tag}"
+          fi
+
+      - name: Publish index.yaml to repository root
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          cp -f .dist/index.yaml ./index.yaml
+          git add index.yaml
+          if git diff --cached --quiet; then
+            echo "No index changes."
+            exit 0
+          fi
+          git commit -m "chore(charts): update helm index for ${GITHUB_SHA::8} [skip charts publish]"
+          git push origin HEAD:main
+
+      - name: Verify release and index
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh api "repos/${{ github.repository }}/contents/index.yaml?ref=main" >/dev/null
+          gh release view "${{ steps.meta.outputs.release_tag }}" >/dev/null

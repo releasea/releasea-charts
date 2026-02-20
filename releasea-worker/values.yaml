@@ -1,0 +1,82 @@
+replicaCount: 1
+
+image:
+  repository: releasea/releasea-worker
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+token: ""
+environment: "prod"
+namespacePrefix: "releasea-apps"
+tags: ""
+cluster: "k3d-local"
+
+worker:
+  id: ""
+  name: "releasea-worker"
+  environment: ""
+  namespace: ""
+  token: ""
+  version: ""
+  heartbeatSeconds: 30
+  queueName: "releasea.worker"
+  extraEnv: []
+  dockerBuildNetwork: "host"
+
+api:
+  baseUrl: "http://host.k3d.internal:8070/api/v1"
+
+rabbitmq:
+  url: "amqp://releasea:releasea@releasea-rabbitmq.releasea-system.svc.cluster.local:5672/"
+
+routing:
+  internalDomain: "releasea.internal"
+  externalDomain: "releasea.external"
+  internalGateway: "istio-system/releasea-internal-gateway"
+  externalGateway: "istio-system/releasea-external-gateway"
+
+minio:
+  endpoint: "releasea-minio.releasea-system.svc.cluster.local:9000"
+  accessKey: "releasea"
+  secretKey: "releaseaadmin"
+  bucket: "releasea-static"
+  secure: false
+
+staticSite:
+  prefix: "sites"
+  nginxService: "releasea-static-nginx"
+  nginxNamespace: "releasea-system"
+
+resources: {}
+securityContext: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+hostAliases: []
+
+serviceAccount:
+  create: true
+  name: ""
+
+rbac:
+  create: true
+  clusterAdmin: true
+  rules: []
+
+dockerDinD:
+  enabled: true
+  image: "docker:28.2.2-dind"
+  pullPolicy: IfNotPresent
+  args:
+    - "--host=tcp://0.0.0.0:2375"
+    - "--host=unix:///var/run/docker.sock"
+    - "--log-level=debug"
+    - "--insecure-registry=registry.localhost:5010"
+    - "--max-concurrent-downloads=10"
+  env:
+    - name: DOCKER_TLS_CERTDIR
+      value: ""
+    - name: DOCKERD_FLAGS
+      value: "--dns=8.8.8.8"
+  resources: {}
+  workerDockerHost: "tcp://localhost:2375"

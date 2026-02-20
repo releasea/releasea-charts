@@ -1,0 +1,160 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "releasea-worker.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "releasea-worker.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "releasea-worker.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "releasea-worker.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- $workerVersion := (coalesce .Values.worker.version .Chart.AppVersion) }}
+      {{- if $workerVersion }}
+      annotations:
+        releasea.dev/worker-version: {{ $workerVersion | quote }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "releasea-worker.serviceAccountName" . }}
+      {{- with .Values.hostAliases }}
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: releasea-worker
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: RELEASEA_API_BASE_URL
+              value: {{ .Values.api.baseUrl | quote }}
+            - name: WORKER_ID
+              {{- if .Values.worker.id }}
+              value: {{ .Values.worker.id | quote }}
+              {{- else }}
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+              {{- end }}
+            - name: WORKER_NAME
+              value: {{ .Values.worker.name | quote }}
+            - name: WORKER_ENVIRONMENT
+              value: {{ coalesce .Values.worker.environment .Values.environment | quote }}
+            - name: WORKER_NAMESPACE
+              {{- if .Values.worker.namespace }}
+              value: {{ .Values.worker.namespace | quote }}
+              {{- else }}
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+              {{- end }}
+            - name: WORKER_NAMESPACE_PREFIX
+              value: {{ .Values.namespacePrefix | quote }}
+            - name: WORKER_CLUSTER
+              value: {{ .Values.cluster | quote }}
+            - name: WORKER_VERSION
+              value: {{ $workerVersion | quote }}
+            - name: WORKER_TAGS
+              value: {{ .Values.tags | quote }}
+            - name: WORKER_DEPLOYMENT_NAME
+              value: {{ include "releasea-worker.fullname" . | quote }}
+            - name: WORKER_DEPLOYMENT_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: WORKER_DESIRED_AGENTS
+              value: {{ .Values.replicaCount | quote }}
+            - name: WORKER_QUEUE
+              value: {{ .Values.worker.queueName | quote }}
+            - name: HEARTBEAT_INTERVAL_SECONDS
+              value: {{ .Values.worker.heartbeatSeconds | quote }}
+            - name: RABBITMQ_URL
+              value: {{ .Values.rabbitmq.url | quote }}
+            - name: RELEASEA_INTERNAL_DOMAIN
+              value: {{ .Values.routing.internalDomain | quote }}
+            - name: RELEASEA_EXTERNAL_DOMAIN
+              value: {{ .Values.routing.externalDomain | quote }}
+            - name: RELEASEA_INTERNAL_GATEWAY
+              value: {{ .Values.routing.internalGateway | quote }}
+            - name: RELEASEA_EXTERNAL_GATEWAY
+              value: {{ .Values.routing.externalGateway | quote }}
+            - name: RELEASEA_MINIO_ENDPOINT
+              value: {{ .Values.minio.endpoint | quote }}
+            - name: RELEASEA_MINIO_ACCESS_KEY
+              value: {{ .Values.minio.accessKey | quote }}
+            - name: RELEASEA_MINIO_SECRET_KEY
+              value: {{ .Values.minio.secretKey | quote }}
+            - name: RELEASEA_MINIO_BUCKET
+              value: {{ .Values.minio.bucket | quote }}
+            - name: RELEASEA_MINIO_SECURE
+              value: {{ .Values.minio.secure | quote }}
+            - name: RELEASEA_STATIC_SITE_PREFIX
+              value: {{ .Values.staticSite.prefix | quote }}
+            - name: RELEASEA_STATIC_NGINX_SERVICE
+              value: {{ .Values.staticSite.nginxService | quote }}
+            - name: RELEASEA_STATIC_NGINX_NAMESPACE
+              value: {{ .Values.staticSite.nginxNamespace | quote }}
+            {{- if .Values.dockerDinD.enabled }}
+            - name: DOCKER_HOST
+              value: {{ .Values.dockerDinD.workerDockerHost | quote }}
+            - name: DOCKER_TLS_CERTDIR
+              value: ""
+            {{- end }}
+            {{- if .Values.worker.dockerBuildNetwork }}
+            - name: DOCKER_BUILD_NETWORK
+              value: {{ .Values.worker.dockerBuildNetwork | quote }}
+            {{- end }}
+            {{- with .Values.worker.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- $token := coalesce .Values.worker.token .Values.token }}
+            {{- if $token }}
+            - name: RELEASEA_WORKER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "releasea-worker.fullname" . }}-token
+                  key: token
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+        {{- if .Values.dockerDinD.enabled }}
+        - name: dind
+          image: {{ .Values.dockerDinD.image | quote }}
+          imagePullPolicy: {{ .Values.dockerDinD.pullPolicy }}
+          args:
+            {{- toYaml .Values.dockerDinD.args | nindent 12 }}
+          env:
+            {{- toYaml .Values.dockerDinD.env | nindent 12 }}
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: dind-storage
+              mountPath: /var/lib/docker
+            - name: dind-run
+              mountPath: /var/run
+          resources:
+            {{- toYaml .Values.dockerDinD.resources | nindent 12 }}
+        {{- end }}
+      {{- if .Values.dockerDinD.enabled }}
+      volumes:
+        - name: dind-storage
+          emptyDir: {}
+        - name: dind-run
+          emptyDir: {}
+      {{- end }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      tolerations:
+        {{- toYaml .Values.tolerations | nindent 8 }}
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}

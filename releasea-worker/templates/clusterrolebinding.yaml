@@ -1,0 +1,17 @@
+{{- if and .Values.rbac.create .Values.serviceAccount.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "releasea-worker.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "releasea-worker.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "releasea-worker.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ include "releasea-worker.fullname" . }}
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

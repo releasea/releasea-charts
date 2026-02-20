@@ -1,0 +1,78 @@
+{{- if .Values.prometheus.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: releasea-prometheus-config
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: {{ .Values.prometheus.scrapeInterval | quote }}
+      evaluation_interval: {{ .Values.prometheus.evaluationInterval | quote }}
+    scrape_configs:
+      - job_name: prometheus
+        static_configs:
+          - targets:
+              - localhost:{{ .Values.prometheus.service.port }}
+      - job_name: releasea-api
+        metrics_path: /metrics
+        static_configs:
+          - targets:
+              - releasea-api:{{ .Values.api.service.port }}
+      {{- if .Values.worker.enabled }}
+      - job_name: releasea-worker
+        static_configs:
+          - targets:
+              - releasea-worker:2112
+      {{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: releasea-prometheus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: releasea-prometheus
+  template:
+    metadata:
+      labels:
+        app: releasea-prometheus
+    spec:
+      containers:
+        - name: prometheus
+          image: {{ .Values.prometheus.image | quote }}
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+            - --storage.tsdb.retention.time={{ .Values.prometheus.retention }}
+          ports:
+            - containerPort: {{ .Values.prometheus.service.port }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+            - name: data
+              mountPath: /prometheus
+          {{- with .Values.prometheus.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: releasea-prometheus-config
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: releasea-prometheus
+spec:
+  selector:
+    app: releasea-prometheus
+  ports:
+    - name: http
+      port: {{ .Values.prometheus.service.port }}
+      targetPort: {{ .Values.prometheus.service.port }}
+{{- end }}
