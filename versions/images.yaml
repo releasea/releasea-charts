@@ -1,0 +1,9 @@
+versioning:
+  strategy: semver
+  bump: minor
+commit: abecd41d825d27439849df6036e2ea0f0bbe36b9
+generatedAt: 2026-02-20T12:04:10Z
+images:
+  api: releasea/releasea-api:v1.0.0
+  console: releasea/releasea-console:v1.0.0
+  worker: releasea/releasea-worker:v1.0.0

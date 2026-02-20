@@ -1,0 +1,42 @@
+{{- if .Values.mongodb.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: releasea-mongodb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: releasea-mongodb
+  template:
+    metadata:
+      labels:
+        app: releasea-mongodb
+    spec:
+      containers:
+        - name: mongodb
+          image: {{ .Values.mongodb.image | quote }}
+          ports:
+            - containerPort: {{ .Values.mongodb.service.port }}
+          {{- if .Values.mongodb.persistence.enabled }}
+          volumeMounts:
+            - name: data
+              mountPath: /data/db
+          {{- end }}
+      {{- if .Values.mongodb.persistence.enabled }}
+      volumes:
+        - name: data
+          emptyDir: {}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: releasea-mongodb
+spec:
+  selector:
+    app: releasea-mongodb
+  ports:
+    - port: {{ .Values.mongodb.service.port }}
+      targetPort: {{ .Values.mongodb.service.port }}
+{{- end }}
