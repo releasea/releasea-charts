@@ -1,8 +1,8 @@
 versioning:
   strategy: semver
   bump: patch
-commit: 8e495a00da446442e2579db78adec596eea92cfd
-generatedAt: 2026-02-21T00:22:13Z
+commit: 46fadbb3d5dca62c804e9c9e263ac7c4cab7e685
+generatedAt: 2026-02-21T02:07:42Z
 images:
   api: releasea/releasea-api:v1.0.0
   console: releasea/releasea-console:v1.0.0
