@@ -3,25 +3,3 @@ name: releasea-platform
 description: Install the full Releasea platform with optional peripheral services
 version: 0.1.0
 appVersion: "0.1.0"
-
-dependencies:
-  - name: releasea-worker
-    alias: worker
-    version: 0.1.0
-    repository: "file://../releasea-worker"
-    condition: worker.enabled
-  - name: base
-    alias: istio-base
-    version: ">=0.0.0"
-    repository: "https://istio-release.storage.googleapis.com/charts"
-    condition: istio.enabled
-  - name: istiod
-    alias: istiod
-    version: ">=0.0.0"
-    repository: "https://istio-release.storage.googleapis.com/charts"
-    condition: istio.enabled
-  - name: gateway
-    alias: istio-ingress
-    version: ">=0.0.0"
-    repository: "https://istio-release.storage.googleapis.com/charts"
-    condition: istio.enabled

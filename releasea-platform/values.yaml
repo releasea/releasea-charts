@@ -1,39 +1,7 @@
 global:
   imageTag: latest
   imagePullPolicy: IfNotPresent
-
-istio:
-  enabled: true
-  namespace: istio-system
-  gatewaySelector:
-    istio: ingressgateway
-  gateways:
-    internal:
-      host: "*.releasea.internal"
-    external:
-      host: "*.releasea.external"
-  https:
-    enabled: false
-    credentialName: releasea-local-cert
-    secret:
-      # existingSecret | selfSigned | inline
-      mode: existingSecret
-      namespace: ""
-      inlineCrt: ""
-      inlineKey: ""
-    selfSigned:
-      commonName: "*.releasea.external"
-      altNames:
-        - "*.releasea.internal"
-        - "*.releasea.external"
-        - "releasea.internal"
-        - "releasea.external"
-      days: 365
-  envoyPodMonitor:
-    enabled: true
-    namespace: monitoring
-    interval: 15s
-
+  
 api:
   enabled: true
   replicaCount: 1
@@ -62,32 +30,6 @@ console:
     className: ""
     host: ""
     path: /
-
-worker:
-  enabled: true
-  image:
-    repository: releasea/releasea-worker
-    tag: ""
-    pullPolicy: IfNotPresent
-  replicaCount: 1
-  token: ""
-  environment: production
-  namespacePrefix: releasea-apps
-  worker:
-    name: releasea-worker
-    queueName: releasea.worker
-    heartbeatSeconds: 30
-    dockerBuildNetwork: host
-  api:
-    baseUrl: http://releasea-api:8070/api/v1
-  rabbitmq:
-    url: amqp://releasea:releasea@releasea-rabbitmq:5672/
-  minio:
-    endpoint: releasea-minio:9000
-    accessKey: releasea
-    secretKey: releaseaadmin
-    bucket: releasea-static
-    secure: false
 
 mongodb:
   enabled: true

@@ -20,7 +20,7 @@ spec:
             - server
             - /data
             - --console-address
-            - :{{ .Values.minio.service.consolePort | quote }}
+            - ":{{ .Values.minio.service.consolePort }}"
           env:
             - name: MINIO_ROOT_USER
               value: {{ .Values.minio.accessKey | quote }}
