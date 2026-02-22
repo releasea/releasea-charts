@@ -18,12 +18,6 @@ data:
         static_configs:
           - targets:
               - releasea-api:{{ .Values.api.service.port }}
-      {{- if .Values.worker.enabled }}
-      - job_name: releasea-worker
-        static_configs:
-          - targets:
-              - releasea-worker:2112
-      {{- end }}
 ---
 apiVersion: apps/v1
 kind: Deployment
