@@ -3,6 +3,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: releasea-rabbitmq
+  labels:
+    {{- include "releasea-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
 spec:
   replicas: 1
   selector:
@@ -23,12 +26,17 @@ spec:
               value: {{ .Values.rabbitmq.auth.password | quote }}
           ports:
             - containerPort: {{ .Values.rabbitmq.service.amqpPort }}
+              name: amqp
             - containerPort: {{ .Values.rabbitmq.service.managementPort }}
+              name: management
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: releasea-rabbitmq
+  labels:
+    {{- include "releasea-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
 spec:
   selector:
     app: releasea-rabbitmq

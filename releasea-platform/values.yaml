@@ -1,7 +1,7 @@
 global:
   imageTag: latest
   imagePullPolicy: IfNotPresent
-  
+
 api:
   enabled: true
   replicaCount: 1
@@ -15,6 +15,8 @@ api:
     PORT: "8070"
     MONGO_URI: mongodb://releasea-mongodb:27017/releasea
     RABBITMQ_URL: amqp://releasea:releasea@releasea-rabbitmq:5672/
+    PROMETHEUS_URL: http://releasea-prometheus:9090
+    LOKI_URL: http://releasea-loki:3100
 
 console:
   enabled: true
@@ -37,7 +39,7 @@ mongodb:
   service:
     port: 27017
   persistence:
-    enabled: true
+    enabled: false
     size: 8Gi
 
 rabbitmq:
@@ -60,8 +62,17 @@ minio:
   secretKey: releaseaadmin
   bucket: releasea-static
   persistence:
-    enabled: true
+    enabled: false
     size: 10Gi
+
+staticNginx:
+  enabled: true
+  image: "nginx:1.27-alpine"
+  dnsResolver: "10.43.0.10"
+  internalDomain: "releasea.internal"
+  externalDomain: "releasea.external"
+  sitePrefix: "sites"
+  resources: {}
 
 prometheus:
   enabled: true
@@ -69,8 +80,6 @@ prometheus:
   retention: 6h
   scrapeInterval: 30s
   evaluationInterval: 30s
-  serviceMonitorSelectorNilUsesHelmValues: false
-  podMonitorSelectorNilUsesHelmValues: false
   service:
     port: 9090
   resources: {}
