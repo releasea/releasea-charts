@@ -1,5 +1,37 @@
 {{- if .Values.prometheus.enabled }}
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: releasea-prometheus
+  labels:
+    {{- include "releasea-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: releasea-prometheus
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "nodes/metrics", "nodes/proxy", "services", "endpoints", "pods"]
+    verbs: ["get", "list", "watch"]
+  - nonResourceURLs: ["/metrics", "/metrics/cadvisor"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: releasea-prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: releasea-prometheus
+subjects:
+  - kind: ServiceAccount
+    name: releasea-prometheus
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: releasea-prometheus-config
@@ -9,15 +41,81 @@ data:
       scrape_interval: {{ .Values.prometheus.scrapeInterval | quote }}
       evaluation_interval: {{ .Values.prometheus.evaluationInterval | quote }}
     scrape_configs:
+      # Prometheus self-monitoring
       - job_name: prometheus
         static_configs:
           - targets:
               - localhost:{{ .Values.prometheus.service.port }}
+
+      # Releasea API metrics
       - job_name: releasea-api
         metrics_path: /metrics
         static_configs:
           - targets:
               - releasea-api:{{ .Values.api.service.port }}
+
+      # Kubelet cAdvisor - container CPU and memory metrics
+      - job_name: kubelet-cadvisor
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          insecure_skip_verify: true
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        kubernetes_sd_configs:
+          - role: node
+        metrics_path: /metrics/cadvisor
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+
+      # Istio Envoy sidecar metrics (request rate, latency)
+      - job_name: envoy-stats
+        metrics_path: /stats/prometheus
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            action: keep
+            regex: istio-proxy
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:15090
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: pod
+
+      # Kubernetes pods with prometheus.io annotations
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: "true"
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: pod
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -33,6 +131,7 @@ spec:
       labels:
         app: releasea-prometheus
     spec:
+      serviceAccountName: releasea-prometheus
       containers:
         - name: prometheus
           image: {{ .Values.prometheus.image | quote }}
@@ -40,6 +139,7 @@ spec:
             - --config.file=/etc/prometheus/prometheus.yml
             - --storage.tsdb.path=/prometheus
             - --storage.tsdb.retention.time={{ .Values.prometheus.retention }}
+            - --web.enable-lifecycle
           ports:
             - containerPort: {{ .Values.prometheus.service.port }}
           volumeMounts:
