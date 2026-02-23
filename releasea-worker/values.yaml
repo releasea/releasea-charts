@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: releasea/releasea-worker
-  tag: "latest"
+  tag: "v1.4.0"
   pullPolicy: IfNotPresent
 
 token: ""

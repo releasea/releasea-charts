@@ -15,6 +15,7 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip charts publish]')"
     concurrency:
       group: releasea-charts-publish
       cancel-in-progress: false
@@ -101,6 +102,19 @@ jobs:
           echo "app_version=${APP_VERSION}" >> "$GITHUB_OUTPUT"
           echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
           echo "bump=${BUMP}" >> "$GITHUB_OUTPUT"
+
+      - name: Update Chart.yaml versions
+        run: |
+          set -euo pipefail
+          CHART_VERSION="${{ steps.meta.outputs.chart_version }}"
+          APP_VERSION="${{ steps.meta.outputs.app_version }}"
+          for chart_dir in releasea-platform releasea-worker; do
+            if [ -f "${chart_dir}/Chart.yaml" ]; then
+              sed -i "s/^version: .*/version: ${CHART_VERSION}/" "${chart_dir}/Chart.yaml"
+              sed -i "s/^appVersion: .*/appVersion: \"${APP_VERSION}\"/" "${chart_dir}/Chart.yaml"
+              echo "Updated ${chart_dir}/Chart.yaml: version=${CHART_VERSION}, appVersion=${APP_VERSION}"
+            fi
+          done
 
       - name: Stamp image tags from versions manifest
         run: |
@@ -195,18 +209,20 @@ jobs:
               --url "https://github.com/${{ github.repository }}/releases/download/${tag}"
           fi
 
-      - name: Publish index.yaml to repository root
+      - name: Publish chart metadata to repository
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           cp -f .dist/index.yaml ./index.yaml
           git add index.yaml
+          git add releasea-platform/Chart.yaml releasea-platform/values.yaml 2>/dev/null || true
+          git add releasea-worker/Chart.yaml releasea-worker/values.yaml 2>/dev/null || true
           if git diff --cached --quiet; then
-            echo "No index changes."
+            echo "No changes to commit."
             exit 0
           fi
-          git commit -m "chore(charts): update helm index for ${GITHUB_SHA::8} [skip charts publish]"
+          git commit -m "chore(charts): release ${{ steps.meta.outputs.release_tag }} [skip charts publish]"
           git push origin HEAD:main
 
       - name: Verify release and index
