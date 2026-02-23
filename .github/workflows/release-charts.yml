@@ -102,6 +102,39 @@ jobs:
           echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
           echo "bump=${BUMP}" >> "$GITHUB_OUTPUT"
 
+      - name: Stamp image tags from versions manifest
+        run: |
+          set -euo pipefail
+          if [ ! -f versions/images.yaml ]; then
+            echo "No versions/images.yaml found, skipping tag stamping."
+            exit 0
+          fi
+
+          extract_tag() {
+            local key="$1"
+            local line
+            line="$(grep "^  ${key}:" versions/images.yaml || true)"
+            if [ -z "${line}" ]; then return; fi
+            printf '%s' "${line}" | rev | cut -d: -f1 | rev | tr -d '[:space:]'
+          }
+
+          API_TAG="$(extract_tag api)"
+          CONSOLE_TAG="$(extract_tag console)"
+          WORKER_TAG="$(extract_tag worker)"
+
+          if [ -n "${API_TAG}" ] && [ -f releasea-platform/values.yaml ]; then
+            sed -i "/repository: releasea\/releasea-api/{n;s/tag: .*/tag: \"${API_TAG}\"/}" releasea-platform/values.yaml
+            echo "Stamped api.image.tag=${API_TAG}"
+          fi
+          if [ -n "${CONSOLE_TAG}" ] && [ -f releasea-platform/values.yaml ]; then
+            sed -i "/repository: releasea\/releasea-console/{n;s/tag: .*/tag: \"${CONSOLE_TAG}\"/}" releasea-platform/values.yaml
+            echo "Stamped console.image.tag=${CONSOLE_TAG}"
+          fi
+          if [ -n "${WORKER_TAG}" ] && [ -f releasea-worker/values.yaml ]; then
+            sed -i "/repository: releasea\/releasea-worker/{n;s/tag: .*/tag: \"${WORKER_TAG}\"/}" releasea-worker/values.yaml
+            echo "Stamped image.tag=${WORKER_TAG}"
+          fi
+
       - name: Build dependencies
         run: |
           set -euo pipefail
