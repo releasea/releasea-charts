@@ -10,13 +10,22 @@ Installs API, Console, MongoDB, RabbitMQ, MinIO, Static Nginx, Prometheus, and L
 
 | Requirement | Details |
 |-------------|---------|
-| **Kubernetes** | Version 1.25+ |
+| **Kubernetes** | Version 1.25+ (any conformant cluster) |
+| **kubectl** | Configured for your target cluster |
 | **Helm** | Version 3.14+ |
-| **Istio** | Installed separately (see below) |
+| **Istio** | Installed separately (see Step 1) |
+
+## Before you begin
+
+For a complete installation, Releasea requires [Istio](https://istio.io/) as a service mesh in the cluster. The platform uses Istio to manage traffic routing between services, perform canary deployments with traffic splitting, and collect per-service metrics (request rate, latency, status codes) through Envoy sidecars.
+
+Istio is not included in the chart because it is a cluster-level component - it may already be present in your cluster or managed by your infrastructure team. If you do not have Istio installed yet, Step 1 below covers the installation.
 
 ## Install
 
 ### 1. Install Istio
+
+Istio must be installed **before** the platform chart. Minimum version: 1.20+.
 
 ```bash
 istioctl install -y --set profile=default
@@ -32,17 +41,26 @@ helm upgrade --install istiod istio/istiod -n istio-system --wait
 helm upgrade --install istio-ingress istio/gateway -n istio-system --wait
 ```
 
+Verify Istio is running:
+
+```bash
+kubectl -n istio-system get pods -l app=istiod
+kubectl get crd gateways.networking.istio.io
+```
+
 ### 2. Install the platform
 
 ```bash
-helm upgrade --install releasea ./releasea-platform \
-  -n releasea-system --create-namespace
+helm repo add releasea https://releasea.github.io/releasea-charts
+helm repo update
+helm upgrade --install releasea releasea/releasea-platform -n releasea-system --create-namespace
 ```
 
-Infrastructure only (no API, Console, or MongoDB):
+All components are enabled by default. Disable any with `--set <component>.enabled=false`:
 
 ```bash
-helm upgrade --install releasea ./releasea-platform \
+# Infrastructure only (no API, Console, or MongoDB)
+helm upgrade --install releasea releasea/releasea-platform \
   -n releasea-system --create-namespace \
   --set api.enabled=false \
   --set console.enabled=false \
@@ -56,6 +74,8 @@ kubectl label namespace releasea-system istio-injection=enabled --overwrite
 ```
 
 ### 4. Create Istio Gateways
+
+> **Note:** The domains `*.releasea.internal` and `*.releasea.external` below are examples. Replace them with the domains used in your environment - for example, `*.internal.mycompany.com` and `*.apps.mycompany.com`. These are the domains that Releasea will use to route traffic to your deployed services.
 
 ```bash
 kubectl apply -f - <<'EOF'
@@ -97,23 +117,44 @@ Local development with [mkcert](https://github.com/FiloSottile/mkcert):
 
 ```bash
 mkcert -install
-mkcert -cert-file releasea.pem -key-file releasea-key.pem \
-  "*.releasea.internal" "*.releasea.external"
-kubectl -n istio-system create secret tls releasea-local-cert \
-  --cert=releasea.pem --key=releasea-key.pem
+mkcert -cert-file releasea.pem -key-file releasea-key.pem "*.releasea.internal" "*.releasea.external"
+kubectl -n istio-system create secret tls releasea-local-cert --cert=releasea.pem --key=releasea-key.pem
 ```
 
 Production: use [cert-manager](https://cert-manager.io/) or your CA to provide the `releasea-local-cert` secret.
 
-### 6. Install Workers
+### 6. Validate and access the Console
 
 ```bash
-helm upgrade --install releasea-worker ./releasea-worker \
-  -n releasea-system \
-  --set-string token=<worker-token>
+kubectl -n releasea-system get pods
+kubectl -n releasea-system get svc
 ```
 
-See the [releasea-worker](../releasea-worker/) chart for full configuration.
+All pods should be `Running`. The installation is complete.
+
+> **Next step:** To start using the platform, you need to access the Releasea Console. How you expose it depends on your environment and network setup - below are some alternatives to get you started.
+
+**Port forward (quickest way to get started):**
+
+```bash
+kubectl -n releasea-system port-forward svc/releasea-console 8080:8080
+```
+
+Then open `http://localhost:8080` in your browser.
+
+**Via Ingress Controller (cloud environments):**
+
+If you use an AWS ALB, Nginx Ingress, or similar controller, enable the Console ingress:
+
+```bash
+helm upgrade --install releasea releasea/releasea-platform \
+  -n releasea-system \
+  --set console.ingress.enabled=true \
+  --set console.ingress.className=alb \
+  --set console.ingress.host=console.your-domain.com
+```
+
+Adjust `className` and `host` to match your environment (`nginx`, `alb`, `traefik`, etc.).
 
 ## Parameters
 
@@ -235,7 +276,7 @@ The chart includes standalone Prometheus and Loki that work out of the box:
 To use external monitoring stacks instead, disable the built-in ones and point the API to your endpoints:
 
 ```bash
-helm upgrade --install releasea ./releasea-platform -n releasea-system \
+helm upgrade --install releasea releasea/releasea-platform -n releasea-system \
   --set prometheus.enabled=false \
   --set loki.enabled=false \
   --set "api.env.PROMETHEUS_URL=http://your-prometheus:9090" \
@@ -262,3 +303,5 @@ helm uninstall releasea -n releasea-system
 kubectl -n istio-system delete gateway releasea-internal-gateway releasea-external-gateway
 kubectl delete namespace releasea-system
 ```
+
+> **Note:** Uninstalling the platform chart does not uninstall Istio. Manage Istio lifecycle separately.
