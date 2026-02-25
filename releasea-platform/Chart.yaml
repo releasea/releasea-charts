@@ -1,5 +1,5 @@
 apiVersion: v2
 name: releasea-platform
 description: Install the full Releasea platform with optional peripheral services
-version: 1.4.15
-appVersion: "g3d4db66c"
+version: 0.1.0
+appVersion: "0.1.0"
