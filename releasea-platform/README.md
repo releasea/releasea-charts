@@ -305,3 +305,7 @@ kubectl delete namespace releasea-system
 ```
 
 > **Note:** Uninstalling the platform chart does not uninstall Istio. Manage Istio lifecycle separately.
+
+## License
+
+Apache 2.0 - See [../LICENSE](../LICENSE) for details.
