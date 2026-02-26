@@ -13,52 +13,21 @@ Installs API, Console, MongoDB, RabbitMQ, MinIO, Static Nginx, Prometheus, and L
 | **Kubernetes** | Version 1.25+ (any conformant cluster) |
 | **kubectl** | Configured for your target cluster |
 | **Helm** | Version 3.14+ |
-| **Istio** | Installed separately (see Step 1) |
+| **Istio** | Installed separately (see Step 2) |
 
 ## Before you begin
 
 For a complete installation, Releasea requires [Istio](https://istio.io/) as a service mesh in the cluster. The platform uses Istio to manage traffic routing between services, perform canary deployments with traffic splitting, and collect per-service metrics (request rate, latency, status codes) through Envoy sidecars.
 
-Istio is not included in the chart because it is a cluster-level component - it may already be present in your cluster or managed by your infrastructure team. If you do not have Istio installed yet, Step 1 below covers the installation.
+Istio is not included in the chart because it is a cluster-level component - it may already be present in your cluster or managed by your infrastructure team. If you do not have Istio installed yet, Step 2 below covers the installation.
 
 ## Install
 
-### 1. Install Istio
-
-Istio must be installed **before** the platform chart. Minimum version: 1.20+.
-
-```bash
-istioctl install -y --set profile=default
-```
-
-Or via Helm:
-
-```bash
-helm repo add istio https://istio-release.storage.googleapis.com/charts
-helm repo update
-helm upgrade --install istio-base istio/base -n istio-system --create-namespace --wait
-helm upgrade --install istiod istio/istiod -n istio-system --wait
-helm upgrade --install istio-ingress istio/gateway -n istio-system --wait
-```
-
-Verify Istio is running:
-
-```bash
-kubectl -n istio-system get pods -l app=istiod
-kubectl get crd gateways.networking.istio.io
-```
-
-### 2. Install the platform
+### 1. Install the platform
 
 ```bash
 helm repo add releasea https://releasea.github.io/releasea-charts
 helm repo update
-helm upgrade --install releasea releasea/releasea-platform -n releasea-system --create-namespace
-```
-
-To keep API + worker routing aligned from installation time, set routing once through `global.routing`:
-
-```bash
 helm upgrade --install releasea releasea/releasea-platform \
   -n releasea-system --create-namespace \
   --set-string global.routing.internalDomain=internal.mycompany.com \
@@ -81,6 +50,31 @@ helm upgrade --install releasea releasea/releasea-platform \
   --set api.enabled=false \
   --set console.enabled=false \
   --set mongodb.enabled=false
+```
+
+### 2. Install Istio
+
+Istio minimum version: 1.20+.
+
+```bash
+istioctl install -y --set profile=default
+```
+
+Or via Helm:
+
+```bash
+helm repo add istio https://istio-release.storage.googleapis.com/charts
+helm repo update
+helm upgrade --install istio-base istio/base -n istio-system --create-namespace --wait
+helm upgrade --install istiod istio/istiod -n istio-system --wait
+helm upgrade --install istio-ingress istio/gateway -n istio-system --wait
+```
+
+Verify Istio is running:
+
+```bash
+kubectl -n istio-system get pods -l app=istiod
+kubectl get crd gateways.networking.istio.io
 ```
 
 ### 3. Enable Istio sidecar injection

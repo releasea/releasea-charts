@@ -18,6 +18,14 @@ Workers execute operations on behalf of the platform: deploys, rule publication,
 
 ## Install
 
+### 1. Register worker in Releasea Console
+
+1. Go to `Workers -> Register Worker`.
+2. Fill worker name, environment, tags, cluster, and namespace prefix.
+3. Copy the generated token.
+
+### 2. Install chart in target cluster
+
 ```bash
 helm repo add releasea https://releasea.github.io/releasea-charts
 helm repo update
@@ -29,7 +37,9 @@ helm upgrade --install releasea-worker releasea/releasea-worker \
   --set token=<worker-token>
 ```
 
-Recommended: set routing once via `global.routing` (with fallback compatibility to `routing.*`):
+### 3. Set shared routing domains (recommended)
+
+Set routing once via `global.routing` (with fallback compatibility to `routing.*`):
 
 ```bash
 helm upgrade --install releasea-worker releasea/releasea-worker \
@@ -41,7 +51,9 @@ helm upgrade --install releasea-worker releasea/releasea-worker \
   --set-string global.routing.externalDomain=apps.mycompany.com
 ```
 
-Optional: only if your gateway resource names are different from defaults, override them too:
+### 4. (Optional) Override gateway names
+
+Only if your gateway resource names are different from defaults:
 
 ```bash
 --set-string global.routing.internalGateway=istio-system/releasea-internal-gateway \
