@@ -7,7 +7,7 @@ api:
   replicaCount: 1
   image:
     repository: releasea/releasea-api
-    tag: "v1.5.6"
+    tag: "v1.5.8"
   service:
     type: ClusterIP
     port: 8070
@@ -23,7 +23,7 @@ console:
   replicaCount: 1
   image:
     repository: releasea/releasea-console
-    tag: "v1.5.5"
+    tag: "v1.5.6"
   service:
     type: ClusterIP
     port: 8080

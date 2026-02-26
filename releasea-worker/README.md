@@ -121,3 +121,7 @@ helm upgrade --install releasea-worker releasea/releasea-worker \
 | `dockerDinD.env` | Extra environment variables | See `values.yaml` |
 | `dockerDinD.resources` | CPU/memory resource limits | `{}` |
 | `dockerDinD.workerDockerHost` | Docker host URI for the worker | `tcp://localhost:2375` |
+
+## License
+
+Apache 2.0 - See [../LICENSE](../LICENSE) for details.

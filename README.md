@@ -67,3 +67,7 @@ SemVer bump rules for chart releases (`vX.Y.Z`):
 | `patch` | Default for all other commits |
 
 First chart release starts at `v1.0.0`.
+
+## License
+
+Apache 2.0 - See [LICENSE](LICENSE) for details.
