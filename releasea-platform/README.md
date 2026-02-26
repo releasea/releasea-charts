@@ -145,6 +145,15 @@ kubectl -n releasea-system port-forward svc/releasea-console 8080:8080
 
 Then open `http://localhost:8080`.
 
+Sign in with bootstrap credentials:
+
+| Credential | Value |
+|------------|-------|
+| **Admin email** | `admin@releasea.io` |
+| **Admin password** | `releasea` |
+
+Change the default password immediately after first login.
+
 **Ingress (cloud environments):**
 
 If you use an AWS ALB, Nginx Ingress, or similar controller, enable the Console ingress:
