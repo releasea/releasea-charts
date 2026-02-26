@@ -1,12 +1,11 @@
-# releasea-platform
+# Platform Chart Setup
 
-Helm chart for deploying the Releasea platform infrastructure into a single Kubernetes namespace.
-
-Installs API, Console, MongoDB, RabbitMQ, MinIO, Static Nginx, Prometheus, and Loki + Promtail. All components are feature-flagged and can be individually enabled or disabled.
+Deploy the full Releasea platform in one namespace with `releasea-platform`.
+This chart includes API, Console, MongoDB, RabbitMQ, MinIO, Static Nginx, Prometheus, and Loki + Promtail.
 
 > **Note:** Workers are deployed **separately** using the [releasea-worker](../releasea-worker/) chart. See [Environments & Workers](https://docs.releasea.io/?doc=environments-and-workers) for details.
 
-## Prerequisites
+## Requirements
 
 | Requirement | Details |
 |-------------|---------|
@@ -15,13 +14,7 @@ Installs API, Console, MongoDB, RabbitMQ, MinIO, Static Nginx, Prometheus, and L
 | **Helm** | Version 3.14+ |
 | **Istio** | Installed separately (see Step 2) |
 
-## Before you begin
-
-For a complete installation, Releasea requires [Istio](https://istio.io/) as a service mesh in the cluster. The platform uses Istio to manage traffic routing between services, perform canary deployments with traffic splitting, and collect per-service metrics (request rate, latency, status codes) through Envoy sidecars.
-
-Istio is not included in the chart because it is a cluster-level component - it may already be present in your cluster or managed by your infrastructure team. If you do not have Istio installed yet, Step 2 below covers the installation.
-
-## Install
+## Base Setup (Required)
 
 ### 1. Install the platform
 
@@ -34,7 +27,7 @@ helm upgrade --install releasea releasea/releasea-platform \
   --set-string global.routing.externalDomain=apps.mycompany.com
 ```
 
-Optional: only if your gateway resource names are different from defaults, override them too:
+Optional: only when gateway resource names are different from defaults:
 
 ```bash
 --set-string global.routing.internalGateway=istio-system/releasea-internal-gateway \
@@ -52,7 +45,7 @@ helm upgrade --install releasea releasea/releasea-platform \
   --set mongodb.enabled=false
 ```
 
-### 2. Install Istio
+### 2. Ensure Istio is installed
 
 Istio minimum version: 1.20+.
 
@@ -83,9 +76,9 @@ kubectl get crd gateways.networking.istio.io
 kubectl label namespace releasea-system istio-injection=enabled --overwrite
 ```
 
-### 4. Create Istio Gateways
+### 4. Create Istio gateways
 
-> **Note:** The domains `*.releasea.internal` and `*.releasea.external` below are examples. Replace them with the domains used in your environment - for example, `*.internal.mycompany.com` and `*.apps.mycompany.com`. These are the domains that Releasea will use to route traffic to your deployed services.
+Use your real domains in `hosts` (`*.internal.mycompany.com`, `*.apps.mycompany.com`, etc.).
 
 ```bash
 kubectl apply -f - <<'EOF'
@@ -121,7 +114,7 @@ spec:
 EOF
 ```
 
-### 5. (Optional) TLS Certificates
+### 5. Configure TLS certificates (optional)
 
 Local development with [mkcert](https://github.com/FiloSottile/mkcert):
 
@@ -133,26 +126,26 @@ kubectl -n istio-system create secret tls releasea-local-cert --cert=releasea.pe
 
 Production: use [cert-manager](https://cert-manager.io/) or your CA to provide the `releasea-local-cert` secret.
 
-### 6. Validate and access the Console
+### 6. Validate and access the console
 
 ```bash
 kubectl -n releasea-system get pods
 kubectl -n releasea-system get svc
 ```
 
-All pods should be `Running`. The installation is complete.
+All pods should be `Running`.
 
-> **Next step:** To start using the platform, you need to access the Releasea Console. How you expose it depends on your environment and network setup - below are some alternatives to get you started.
+> **Base setup complete:** the platform is installed and ready for first login.
 
-**Port forward (quickest way to get started):**
+**Port-forward (quickest):**
 
 ```bash
 kubectl -n releasea-system port-forward svc/releasea-console 8080:8080
 ```
 
-Then open `http://localhost:8080` in your browser.
+Then open `http://localhost:8080`.
 
-**Via Ingress Controller (cloud environments):**
+**Ingress (cloud environments):**
 
 If you use an AWS ALB, Nginx Ingress, or similar controller, enable the Console ingress:
 
@@ -165,6 +158,11 @@ helm upgrade --install releasea releasea/releasea-platform \
 ```
 
 Adjust `className` and `host` to match your environment (`nginx`, `alb`, `traefik`, etc.).
+
+## Advanced Options
+
+- Keep gateway defaults and only set domains via `global.routing.internalDomain` and `global.routing.externalDomain`.
+- Override `global.routing.internalGateway` and `global.routing.externalGateway` only if your gateway names differ.
 
 ## Parameters
 

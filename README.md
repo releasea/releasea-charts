@@ -1,93 +1,23 @@
 # Releasea Helm Charts
 
-Official Helm charts for installing the Releasea platform.
+Repository for Releasea Helm charts.
+This README is intentionally short and only provides navigation to detailed docs.
 
-## Available Charts
+## Charts
 
-| Chart | Description | Docs |
-|-------|-------------|------|
-| [**releasea-platform**](./releasea-platform/) | API, Console, MongoDB, RabbitMQ, MinIO, Prometheus, Loki | [README](./releasea-platform/README.md) |
-| [**releasea-worker**](./releasea-worker/) | Standalone worker agent for remote clusters | [README](./releasea-worker/README.md) |
+| Chart | Purpose | Details |
+|-------|---------|---------|
+| [**releasea-platform**](./releasea-platform/) | Install API, Console, and platform dependencies | [releasea-platform/README.md](./releasea-platform/README.md) |
+| [**releasea-worker**](./releasea-worker/) | Install workers in target clusters | [releasea-worker/README.md](./releasea-worker/README.md) |
 
-> **Important:** These are **independent charts**. The platform chart does **not** include the worker. Workers are deployed separately into each target cluster using `releasea-worker`.
+> `releasea-platform` and `releasea-worker` are independent charts and are deployed separately.
 
-> For the full installation guide, see the [Platform Installation Guide](https://docs.releasea.io/?doc=installation).
+## Documentation
 
-## Quick Start (Same Execution Order as Docs)
-
-### 1. Install platform chart
-
-```bash
-helm repo add releasea https://releasea.github.io/releasea-charts
-helm repo update
-
-helm upgrade --install releasea releasea/releasea-platform \
-  -n releasea-system --create-namespace \
-  --set-string global.routing.internalDomain=internal.mycompany.com \
-  --set-string global.routing.externalDomain=apps.mycompany.com
-```
-
-Optional gateway override only when using custom gateway resource names:
-
-```bash
---set-string global.routing.internalGateway=istio-system/releasea-internal-gateway \
---set-string global.routing.externalGateway=istio-system/releasea-external-gateway
-```
-
-### 2. Install Istio
-
-```bash
-istioctl install -y --set profile=default
-```
-
-### 3. Enable sidecar injection and create gateways
-
-Use the same steps from [releasea-platform/README.md](./releasea-platform/README.md#install), sections:
-- `3. Enable Istio sidecar injection`
-- `4. Create Istio Gateways`
-
-### 4. Install worker chart
-
-```bash
-helm upgrade --install releasea-worker releasea/releasea-worker \
-  -n releasea-system --create-namespace \
-  --set api.baseUrl=http://releasea-api.releasea-system.svc.cluster.local:8070/api/v1 \
-  --set token=<worker-token> \
-  --set-string global.routing.internalDomain=internal.mycompany.com \
-  --set-string global.routing.externalDomain=apps.mycompany.com
-```
-
-All components are enabled by default. See [releasea-platform/README.md](./releasea-platform/README.md) and [releasea-worker/README.md](./releasea-worker/README.md) for the full parameters list.
-
-## Prerequisites
-
-| Requirement | Applies To | Details |
-|-------------|------------|---------|
-| **Kubernetes** | Both charts | Version 1.25+ |
-| **Helm** | Both charts | Version 3.14+ |
-| **Istio** | Platform only | Installed separately as cluster-level prerequisite |
-| **Releasea API** | Worker only | Reachable from the worker cluster |
-| **Worker token** | Worker only | Generated from the Releasea Console |
-
-## Automated Packaging
-
-This repository includes `.github/workflows/release-charts.yml`.
-On every push to `main`, it:
-
-1. Builds chart dependencies.
-2. Packages charts with `version=<semver without v>` and `appVersion=g<shortsha>`.
-3. Creates or updates one GitHub Release containing all `.tgz` assets.
-4. Generates/merges `index.yaml` at repository root (`main /`) pointing to release assets.
-
-SemVer bump rules for chart releases (`vX.Y.Z`):
-
-| Bump | Trigger |
-|------|---------|
-| `major` | Commit with `BREAKING CHANGE`, `type(scope)!: ...`, or `[semver:major]` |
-| `minor` | Commit with `feat: ...` or `[semver:minor]` |
-| `patch` | Default for all other commits |
-
-First chart release starts at `v1.0.0`.
+- Platform install guide: [docs.releasea.io/?doc=installation](https://docs.releasea.io/?doc=installation)
+- Environment/worker operations: [docs.releasea.io/?doc=environments-and-workers](https://docs.releasea.io/?doc=environments-and-workers)
+- Platform chart details: [releasea-platform/README.md](./releasea-platform/README.md)
+- Worker chart details: [releasea-worker/README.md](./releasea-worker/README.md)
 
 ## License
 

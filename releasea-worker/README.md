@@ -1,12 +1,11 @@
-# releasea-worker
+# Worker Chart Setup
 
-Standalone Helm chart for deploying Releasea worker agents into target Kubernetes clusters.
-
-Workers execute operations on behalf of the platform: deploys, rule publication, log collection, and metric aggregation. Each worker is registered to an environment and cluster.
+Deploy Releasea workers in target clusters with `releasea-worker`.
+Workers execute deploy and operations jobs for a specific environment.
 
 > **Note:** This chart is deployed **separately** from `releasea-platform`. See [Environments & Workers](https://docs.releasea.io/?doc=environments-and-workers) for registration and management details.
 
-## Prerequisites
+## Requirements
 
 | Requirement | Details |
 |-------------|---------|
@@ -16,9 +15,9 @@ Workers execute operations on behalf of the platform: deploys, rule publication,
 | **RabbitMQ** | Reachable from the worker cluster |
 | **Worker token** | Generated from the Releasea Console |
 
-## Install
+## Base Setup (Required)
 
-### 1. Register worker in Releasea Console
+### 1. Register a worker in Releasea Console
 
 1. Go to `Workers -> Register Worker`.
 2. Fill worker name, environment, tags, cluster, and namespace prefix.
@@ -51,7 +50,7 @@ helm upgrade --install releasea-worker releasea/releasea-worker \
   --set-string global.routing.externalDomain=apps.mycompany.com
 ```
 
-### 4. (Optional) Override gateway names
+### 4. Override gateway names (optional)
 
 Only if your gateway resource names are different from defaults:
 
@@ -59,6 +58,8 @@ Only if your gateway resource names are different from defaults:
 --set-string global.routing.internalGateway=istio-system/releasea-internal-gateway \
 --set-string global.routing.externalGateway=istio-system/releasea-external-gateway
 ```
+
+> **Base setup complete:** worker is registered and aligned with platform routing defaults.
 
 ## Parameters
 
