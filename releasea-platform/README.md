@@ -56,6 +56,22 @@ helm repo update
 helm upgrade --install releasea releasea/releasea-platform -n releasea-system --create-namespace
 ```
 
+To keep API + worker routing aligned from installation time, set routing once through `global.routing`:
+
+```bash
+helm upgrade --install releasea releasea/releasea-platform \
+  -n releasea-system --create-namespace \
+  --set-string global.routing.internalDomain=internal.mycompany.com \
+  --set-string global.routing.externalDomain=apps.mycompany.com
+```
+
+Optional: only if your gateway resource names are different from defaults, override them too:
+
+```bash
+--set-string global.routing.internalGateway=istio-system/releasea-internal-gateway \
+--set-string global.routing.externalGateway=istio-system/releasea-external-gateway
+```
+
 All components are enabled by default. Disable any with `--set <component>.enabled=false`:
 
 ```bash
@@ -164,6 +180,10 @@ Adjust `className` and `host` to match your environment (`nginx`, `alb`, `traefi
 |-----------|-------------|---------|
 | `global.imageTag` | Default image tag for API and Console | `latest` |
 | `global.imagePullPolicy` | Image pull policy | `IfNotPresent` |
+| `global.routing.internalDomain` | Default internal domain used by platform routing | `releasea.internal` |
+| `global.routing.externalDomain` | Default external domain used by platform routing | `releasea.external` |
+| `global.routing.internalGateway` | Default internal Istio gateway reference | `istio-system/releasea-internal-gateway` |
+| `global.routing.externalGateway` | Default external Istio gateway reference | `istio-system/releasea-external-gateway` |
 
 ### API
 
@@ -175,7 +195,7 @@ Adjust `className` and `host` to match your environment (`nginx`, `alb`, `traefi
 | `api.image.tag` | API image tag (overrides global) | `""` |
 | `api.service.type` | Service type | `ClusterIP` |
 | `api.service.port` | Service port | `8070` |
-| `api.env` | Environment variables (key-value map) | See `values.yaml` |
+| `api.env` | Environment variables (key-value map). Routing envs (`RELEASEA_*_DOMAIN`, `RELEASEA_*_GATEWAY`) are auto-derived from `global.routing` unless explicitly set here. | See `values.yaml` |
 
 ### Console
 
@@ -234,8 +254,8 @@ Adjust `className` and `host` to match your environment (`nginx`, `alb`, `traefi
 | `staticNginx.enabled` | Deploy static site reverse proxy | `true` |
 | `staticNginx.image` | Nginx image | `nginx:1.27-alpine` |
 | `staticNginx.dnsResolver` | Cluster DNS resolver IP | `10.43.0.10` |
-| `staticNginx.internalDomain` | Internal domain suffix | `releasea.internal` |
-| `staticNginx.externalDomain` | External domain suffix | `releasea.external` |
+| `staticNginx.internalDomain` | Internal domain suffix override (empty = inherit from `global.routing.internalDomain`) | `""` |
+| `staticNginx.externalDomain` | External domain suffix override (empty = inherit from `global.routing.externalDomain`) | `""` |
 | `staticNginx.sitePrefix` | MinIO path prefix for sites | `sites` |
 | `staticNginx.resources` | CPU/memory resource limits | `{}` |
 

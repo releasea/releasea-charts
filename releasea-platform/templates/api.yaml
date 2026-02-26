@@ -1,4 +1,19 @@
 {{- if .Values.api.enabled }}
+{{- $apiEnv := .Values.api.env | default dict }}
+{{- $routingInternalDomain := include "releasea-platform.routing.internalDomain" . | trim }}
+{{- $routingExternalDomain := include "releasea-platform.routing.externalDomain" . | trim }}
+{{- $routingInternalGateway := include "releasea-platform.routing.internalGateway" . | trim }}
+{{- $routingExternalGateway := include "releasea-platform.routing.externalGateway" . | trim }}
+{{- $internalDomain := coalesce (index $apiEnv "RELEASEA_INTERNAL_DOMAIN") $routingInternalDomain }}
+{{- $externalDomain := coalesce (index $apiEnv "RELEASEA_EXTERNAL_DOMAIN") $routingExternalDomain }}
+{{- $internalGateway := coalesce (index $apiEnv "RELEASEA_INTERNAL_GATEWAY") $routingInternalGateway }}
+{{- $externalGateway := coalesce (index $apiEnv "RELEASEA_EXTERNAL_GATEWAY") $routingExternalGateway }}
+{{- $reservedRoutingEnv := dict
+  "RELEASEA_INTERNAL_DOMAIN" true
+  "RELEASEA_EXTERNAL_DOMAIN" true
+  "RELEASEA_INTERNAL_GATEWAY" true
+  "RELEASEA_EXTERNAL_GATEWAY" true
+}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,10 +40,20 @@ spec:
           ports:
             - containerPort: {{ .Values.api.service.port }}
           env:
-            {{- range $k, $v := .Values.api.env }}
+            {{- range $k, $v := $apiEnv }}
+            {{- if not (hasKey $reservedRoutingEnv $k) }}
             - name: {{ $k }}
               value: {{ $v | quote }}
             {{- end }}
+            {{- end }}
+            - name: RELEASEA_INTERNAL_DOMAIN
+              value: {{ $internalDomain | quote }}
+            - name: RELEASEA_EXTERNAL_DOMAIN
+              value: {{ $externalDomain | quote }}
+            - name: RELEASEA_INTERNAL_GATEWAY
+              value: {{ $internalGateway | quote }}
+            - name: RELEASEA_EXTERNAL_GATEWAY
+              value: {{ $externalGateway | quote }}
           readinessProbe:
             httpGet:
               path: /api/v1/health

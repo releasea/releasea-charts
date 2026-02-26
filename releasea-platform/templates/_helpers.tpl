@@ -18,3 +18,19 @@ helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 {{- $global := index . 1 -}}
 {{- default $global $componentTag -}}
 {{- end -}}
+
+{{- define "releasea-platform.routing.internalDomain" -}}
+{{- default (default "releasea.internal" .Values.global.routing.internalDomain) .Values.staticNginx.internalDomain -}}
+{{- end -}}
+
+{{- define "releasea-platform.routing.externalDomain" -}}
+{{- default (default "releasea.external" .Values.global.routing.externalDomain) .Values.staticNginx.externalDomain -}}
+{{- end -}}
+
+{{- define "releasea-platform.routing.internalGateway" -}}
+{{- default "istio-system/releasea-internal-gateway" .Values.global.routing.internalGateway -}}
+{{- end -}}
+
+{{- define "releasea-platform.routing.externalGateway" -}}
+{{- default "istio-system/releasea-external-gateway" .Values.global.routing.externalGateway -}}
+{{- end -}}

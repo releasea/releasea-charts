@@ -1,6 +1,11 @@
 global:
   imageTag: latest
   imagePullPolicy: IfNotPresent
+  routing:
+    internalDomain: "releasea.internal"
+    externalDomain: "releasea.external"
+    internalGateway: "istio-system/releasea-internal-gateway"
+    externalGateway: "istio-system/releasea-external-gateway"
 
 api:
   enabled: true
@@ -69,8 +74,8 @@ staticNginx:
   enabled: true
   image: "nginx:1.27-alpine"
   dnsResolver: "10.43.0.10"
-  internalDomain: "releasea.internal"
-  externalDomain: "releasea.external"
+  internalDomain: ""
+  externalDomain: ""
   sitePrefix: "sites"
   resources: {}
 

@@ -1,4 +1,6 @@
 {{- if .Values.staticNginx.enabled }}
+{{- $internalDomain := include "releasea-platform.routing.internalDomain" . | trim }}
+{{- $externalDomain := include "releasea-platform.routing.externalDomain" . | trim }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -20,8 +22,8 @@ data:
 
       map $host $site_prefix {
         default "";
-        ~^(?<subdomain>[^.]+)\.{{ .Values.staticNginx.internalDomain | replace "." "\\." }}$ $subdomain;
-        ~^(?<subdomain>[^.]+)\.{{ .Values.staticNginx.externalDomain | replace "." "\\." }}$ $subdomain;
+        ~^(?<subdomain>[^.]+)\.{{ $internalDomain | replace "." "\\." }}$ $subdomain;
+        ~^(?<subdomain>[^.]+)\.{{ $externalDomain | replace "." "\\." }}$ $subdomain;
       }
 
       server {

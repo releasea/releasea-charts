@@ -29,6 +29,25 @@ helm upgrade --install releasea-worker releasea/releasea-worker \
   --set token=<worker-token>
 ```
 
+Recommended: set routing once via `global.routing` (with fallback compatibility to `routing.*`):
+
+```bash
+helm upgrade --install releasea-worker releasea/releasea-worker \
+  -n releasea-system \
+  --create-namespace \
+  --set api.baseUrl=http://releasea-api.releasea-system.svc.cluster.local:8070/api/v1 \
+  --set token=<worker-token> \
+  --set-string global.routing.internalDomain=internal.mycompany.com \
+  --set-string global.routing.externalDomain=apps.mycompany.com
+```
+
+Optional: only if your gateway resource names are different from defaults, override them too:
+
+```bash
+--set-string global.routing.internalGateway=istio-system/releasea-internal-gateway \
+--set-string global.routing.externalGateway=istio-system/releasea-external-gateway
+```
+
 ## Parameters
 
 ### Core
@@ -71,6 +90,10 @@ helm upgrade --install releasea-worker releasea/releasea-worker \
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
+| `global.routing.internalDomain` | Preferred internal domain source (falls back to `routing.internalDomain`) | `""` |
+| `global.routing.externalDomain` | Preferred external domain source (falls back to `routing.externalDomain`) | `""` |
+| `global.routing.internalGateway` | Preferred internal gateway source (falls back to `routing.internalGateway`) | `""` |
+| `global.routing.externalGateway` | Preferred external gateway source (falls back to `routing.externalGateway`) | `""` |
 | `routing.internalDomain` | Internal service domain | `releasea.internal` |
 | `routing.externalDomain` | External service domain | `releasea.external` |
 | `routing.internalGateway` | Istio internal gateway ref | `istio-system/releasea-internal-gateway` |
