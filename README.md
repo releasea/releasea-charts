@@ -13,32 +13,51 @@ Official Helm charts for installing the Releasea platform.
 
 > For the full installation guide, see the [Platform Installation Guide](https://docs.releasea.io/?doc=installation).
 
-## Quick Start
+## Quick Start (Same Execution Order as Docs)
 
-### Platform
+### 1. Install platform chart
 
 ```bash
 helm repo add releasea https://releasea.github.io/releasea-charts
 helm repo update
 
 helm upgrade --install releasea releasea/releasea-platform \
-  -n releasea-system --create-namespace
+  -n releasea-system --create-namespace \
+  --set-string global.routing.internalDomain=internal.mycompany.com \
+  --set-string global.routing.externalDomain=apps.mycompany.com
 ```
 
-All components are enabled by default. See [releasea-platform/README.md](./releasea-platform/README.md) for the full list of supported parameters.
+Optional gateway override only when using custom gateway resource names:
 
-### Worker
+```bash
+--set-string global.routing.internalGateway=istio-system/releasea-internal-gateway \
+--set-string global.routing.externalGateway=istio-system/releasea-external-gateway
+```
+
+### 2. Install Istio
+
+```bash
+istioctl install -y --set profile=default
+```
+
+### 3. Enable sidecar injection and create gateways
+
+Use the same steps from [releasea-platform/README.md](./releasea-platform/README.md#install), sections:
+- `3. Enable Istio sidecar injection`
+- `4. Create Istio Gateways`
+
+### 4. Install worker chart
 
 ```bash
 helm upgrade --install releasea-worker releasea/releasea-worker \
   -n releasea-system --create-namespace \
   --set api.baseUrl=http://releasea-api.releasea-system.svc.cluster.local:8070/api/v1 \
-  --set token=<worker-token>
+  --set token=<worker-token> \
+  --set-string global.routing.internalDomain=internal.mycompany.com \
+  --set-string global.routing.externalDomain=apps.mycompany.com
 ```
 
-See [releasea-worker/README.md](./releasea-worker/README.md) for the full list of supported parameters.
-
-To keep API and worker routing aligned, configure shared domains/gateways via `global.routing` in both installs.
+All components are enabled by default. See [releasea-platform/README.md](./releasea-platform/README.md) and [releasea-worker/README.md](./releasea-worker/README.md) for the full parameters list.
 
 ## Prerequisites
 
