@@ -38,6 +38,8 @@ helm upgrade --install releasea-worker releasea/releasea-worker \
 
 See [releasea-worker/README.md](./releasea-worker/README.md) for the full list of supported parameters.
 
+To keep API and worker routing aligned, configure shared domains/gateways via `global.routing` in both installs.
+
 ## Prerequisites
 
 | Requirement | Applies To | Details |

@@ -1,3 +1,7 @@
+{{- $internalDomain := coalesce .Values.global.routing.internalDomain .Values.routing.internalDomain "releasea.internal" }}
+{{- $externalDomain := coalesce .Values.global.routing.externalDomain .Values.routing.externalDomain "releasea.external" }}
+{{- $internalGateway := coalesce .Values.global.routing.internalGateway .Values.routing.internalGateway "istio-system/releasea-internal-gateway" }}
+{{- $externalGateway := coalesce .Values.global.routing.externalGateway .Values.routing.externalGateway "istio-system/releasea-external-gateway" }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -81,13 +85,13 @@ spec:
             - name: RABBITMQ_URL
               value: {{ .Values.rabbitmq.url | quote }}
             - name: RELEASEA_INTERNAL_DOMAIN
-              value: {{ .Values.routing.internalDomain | quote }}
+              value: {{ $internalDomain | quote }}
             - name: RELEASEA_EXTERNAL_DOMAIN
-              value: {{ .Values.routing.externalDomain | quote }}
+              value: {{ $externalDomain | quote }}
             - name: RELEASEA_INTERNAL_GATEWAY
-              value: {{ .Values.routing.internalGateway | quote }}
+              value: {{ $internalGateway | quote }}
             - name: RELEASEA_EXTERNAL_GATEWAY
-              value: {{ .Values.routing.externalGateway | quote }}
+              value: {{ $externalGateway | quote }}
             - name: RELEASEA_MINIO_ENDPOINT
               value: {{ .Values.minio.endpoint | quote }}
             - name: RELEASEA_MINIO_ACCESS_KEY

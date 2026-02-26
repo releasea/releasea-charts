@@ -1,5 +1,12 @@
 replicaCount: 1
 
+global:
+  routing:
+    internalDomain: ""
+    externalDomain: ""
+    internalGateway: ""
+    externalGateway: ""
+
 image:
   repository: releasea/releasea-worker
   tag: "v1.5.4"
