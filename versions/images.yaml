@@ -1,9 +1,9 @@
 versioning:
   strategy: auto
   level: patch
-commit: 9df4dced6fa2abd2b9c5b4254dbc94a6de42370a
-generatedAt: 2026-03-11T01:22:16Z
+commit: 36f11a6c2494a188c0eaee58709b3cde87d10da7
+generatedAt: 2026-03-11T01:52:59Z
 images:
   api: releasea/releasea-api:v1.5.8
-  console: releasea/releasea-console:v1.5.8
+  console: releasea/releasea-console:v1.5.9
   worker: releasea/releasea-worker:v1.5.4
