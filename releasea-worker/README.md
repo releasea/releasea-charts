@@ -30,36 +30,34 @@ helm repo add releasea https://releasea.github.io/releasea-charts
 helm repo update
 
 helm upgrade --install releasea-worker releasea/releasea-worker \
-  -n releasea-system \
-  --create-namespace \
-  --set api.baseUrl=http://releasea-api.releasea-system.svc.cluster.local:8070/api/v1 \
-  --set token=<worker-token>
+  --set token=<worker-token> \
+  --set environment=prod \
+  --set tags=prod,build \
+  --set worker.name=prod-worker
 ```
 
-### 3. Set shared routing domains (recommended)
+### 3. Advanced mode (remote/custom cluster only)
 
-Set routing once via `global.routing` (with fallback compatibility to `routing.*`):
+Use explicit overrides only when worker cannot read shared bootstrap config from the platform namespace:
 
 ```bash
 helm upgrade --install releasea-worker releasea/releasea-worker \
-  -n releasea-system \
-  --create-namespace \
-  --set api.baseUrl=http://releasea-api.releasea-system.svc.cluster.local:8070/api/v1 \
   --set token=<worker-token> \
+  --set environment=prod \
+  --set tags=prod,build \
+  --set worker.name=prod-worker \
+  --set bootstrap.mode=external \
+  --set-string install.namespace=releasea-system \
+  --set namespacePrefix=releasea-apps \
+  --set-string api.baseUrl=http://releasea-api.releasea-system.svc.cluster.local:8070/api/v1 \
+  --set-string rabbitmq.url=amqp://releasea:releasea@releasea-rabbitmq.releasea-system.svc.cluster.local:5672/ \
   --set-string global.routing.internalDomain=internal.mycompany.com \
-  --set-string global.routing.externalDomain=apps.mycompany.com
+  --set-string global.routing.externalDomain=apps.mycompany.com \
+  --set-string global.routing.internalGateway=istio-system/releasea-internal-gateway \
+  --set-string global.routing.externalGateway=istio-system/releasea-external-gateway
 ```
 
-### 4. Override gateway names (optional)
-
-Only if your gateway resource names are different from defaults:
-
-```bash
---set-string global.routing.internalGateway=istio-system/releasea-internal-gateway \
---set-string global.routing.externalGateway=istio-system/releasea-external-gateway
-```
-
-> **Base setup complete:** worker is registered and aligned with platform routing defaults.
+> **Base setup complete:** worker is registered with the short command. The chart defaults to shared bootstrap profile (`releasea-worker-bootstrap`) in `releasea-system`.
 
 ## Parameters
 
@@ -67,15 +65,27 @@ Only if your gateway resource names are different from defaults:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
+| `install.namespace` | Namespace where worker resources are created | `releasea-system` |
+| `install.createNamespace` | Create install namespace if missing | `true` |
 | `replicaCount` | Number of worker replicas | `1` |
 | `image.repository` | Worker image repository | `releasea/releasea-worker` |
 | `image.tag` | Worker image tag | `latest` |
 | `image.pullPolicy` | Image pull policy | `IfNotPresent` |
 | `token` | Worker registration token | `""` |
 | `environment` | Target environment | `prod` |
-| `namespacePrefix` | Namespace prefix for app workloads | `releasea-apps` |
+| `namespacePrefix` | Namespace prefix for app workloads (`same-cluster` reads from shared profile) | `""` |
 | `tags` | Comma-separated worker tags | `""` |
 | `cluster` | Cluster identifier | `k3d-local` |
+
+### Bootstrap Profile
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `bootstrap.mode` | `same-cluster` uses shared ConfigMap/Secret, `external` uses explicit values | `same-cluster` |
+| `bootstrap.profileVersion` | Bootstrap profile version reported in heartbeat (`same-cluster` reads from shared profile) | `""` |
+| `bootstrap.sharedConfig.configMapName` | Shared ConfigMap name | `releasea-worker-bootstrap` |
+| `bootstrap.sharedConfig.secretName` | Shared Secret name | `releasea-worker-bootstrap` |
+| `bootstrap.sharedConfig.optional` | Allow missing shared profile objects | `true` |
 
 ### Worker Configuration
 
@@ -96,8 +106,8 @@ Only if your gateway resource names are different from defaults:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `api.baseUrl` | Releasea API base URL | `http://releasea-api.releasea-system.svc.cluster.local:8070/api/v1` |
-| `rabbitmq.url` | RabbitMQ connection string | `amqp://releasea:releasea@releasea-rabbitmq.releasea-system.svc.cluster.local:5672/` |
+| `api.baseUrl` | Releasea API base URL (used when `bootstrap.mode=external`) | `""` |
+| `rabbitmq.url` | RabbitMQ connection string (used when `bootstrap.mode=external`) | `""` |
 
 ### Routing
 
@@ -107,19 +117,19 @@ Only if your gateway resource names are different from defaults:
 | `global.routing.externalDomain` | Preferred external domain source (falls back to `routing.externalDomain`) | `""` |
 | `global.routing.internalGateway` | Preferred internal gateway source (falls back to `routing.internalGateway`) | `""` |
 | `global.routing.externalGateway` | Preferred external gateway source (falls back to `routing.externalGateway`) | `""` |
-| `routing.internalDomain` | Internal service domain | `releasea.internal` |
-| `routing.externalDomain` | External service domain | `releasea.external` |
-| `routing.internalGateway` | Istio internal gateway ref | `istio-system/releasea-internal-gateway` |
-| `routing.externalGateway` | Istio external gateway ref | `istio-system/releasea-external-gateway` |
+| `routing.internalDomain` | Internal service domain fallback | `""` |
+| `routing.externalDomain` | External service domain fallback | `""` |
+| `routing.internalGateway` | Istio internal gateway ref fallback | `""` |
+| `routing.externalGateway` | Istio external gateway ref fallback | `""` |
 
 ### MinIO (Static Site Builds)
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `minio.endpoint` | MinIO endpoint | `releasea-minio.releasea-system.svc.cluster.local:9000` |
-| `minio.accessKey` | MinIO access key | `releasea` |
-| `minio.secretKey` | MinIO secret key | `releaseaadmin` |
-| `minio.bucket` | Bucket for static site builds | `releasea-static` |
+| `minio.endpoint` | MinIO endpoint (used when `bootstrap.mode=external`) | `""` |
+| `minio.accessKey` | MinIO access key (used when `bootstrap.mode=external`) | `""` |
+| `minio.secretKey` | MinIO secret key (used when `bootstrap.mode=external`) | `""` |
+| `minio.bucket` | Bucket for static site builds (used when `bootstrap.mode=external`) | `""` |
 | `minio.secure` | Use HTTPS for MinIO | `false` |
 
 ### Static Site
@@ -127,8 +137,8 @@ Only if your gateway resource names are different from defaults:
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `staticSite.prefix` | Object key prefix for sites | `sites` |
-| `staticSite.nginxService` | Static nginx service name | `releasea-static-nginx` |
-| `staticSite.nginxNamespace` | Static nginx namespace | `releasea-system` |
+| `staticSite.nginxService` | Static nginx service name (used when `bootstrap.mode=external`) | `""` |
+| `staticSite.nginxNamespace` | Static nginx namespace (used when `bootstrap.mode=external`) | `""` |
 
 ### Infrastructure
 

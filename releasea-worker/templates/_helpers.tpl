@@ -6,6 +6,10 @@ releasea-worker
 {{- printf "%s" (include "releasea-worker.name" .) -}}
 {{- end }}
 
+{{- define "releasea-worker.installNamespace" -}}
+{{- default "releasea-system" .Values.install.namespace -}}
+{{- end }}
+
 {{- define "releasea-worker.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create -}}
 {{- if .Values.serviceAccount.name -}}

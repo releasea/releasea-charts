@@ -9,7 +9,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: {{ include "releasea-worker.serviceAccountName" . }}
-    namespace: {{ .Release.Namespace }}
+    namespace: {{ include "releasea-worker.installNamespace" . }}
 roleRef:
   kind: ClusterRole
   name: {{ include "releasea-worker.fullname" . }}

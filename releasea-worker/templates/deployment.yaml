@@ -1,11 +1,25 @@
-{{- $internalDomain := coalesce .Values.global.routing.internalDomain .Values.routing.internalDomain "releasea.internal" }}
-{{- $externalDomain := coalesce .Values.global.routing.externalDomain .Values.routing.externalDomain "releasea.external" }}
-{{- $internalGateway := coalesce .Values.global.routing.internalGateway .Values.routing.internalGateway "istio-system/releasea-internal-gateway" }}
-{{- $externalGateway := coalesce .Values.global.routing.externalGateway .Values.routing.externalGateway "istio-system/releasea-external-gateway" }}
+{{- $installNamespace := include "releasea-worker.installNamespace" . }}
+{{- $bootstrapMode := default "same-cluster" .Values.bootstrap.mode }}
+{{- $bootstrapProfileVersion := .Values.bootstrap.profileVersion }}
+{{- $resolvedBootstrapProfileVersion := default "1" .Values.bootstrap.profileVersion }}
+{{- $sharedConfigMapName := default "releasea-worker-bootstrap" .Values.bootstrap.sharedConfig.configMapName }}
+{{- $sharedSecretName := default "releasea-worker-bootstrap" .Values.bootstrap.sharedConfig.secretName }}
+{{- $sharedOptional := default true .Values.bootstrap.sharedConfig.optional }}
+{{- $resolvedInternalDomain := coalesce .Values.global.routing.internalDomain .Values.routing.internalDomain "releasea.internal" }}
+{{- $resolvedExternalDomain := coalesce .Values.global.routing.externalDomain .Values.routing.externalDomain "releasea.external" }}
+{{- $resolvedInternalGateway := coalesce .Values.global.routing.internalGateway .Values.routing.internalGateway "istio-system/releasea-internal-gateway" }}
+{{- $resolvedExternalGateway := coalesce .Values.global.routing.externalGateway .Values.routing.externalGateway "istio-system/releasea-external-gateway" }}
+{{- $resolvedAPIBaseURL := default (printf "http://releasea-api.%s.svc.cluster.local:8070/api/v1" $installNamespace) .Values.api.baseUrl }}
+{{- $resolvedRabbitURL := default (printf "amqp://releasea:releasea@releasea-rabbitmq.%s.svc.cluster.local:5672/" $installNamespace) .Values.rabbitmq.url }}
+{{- $resolvedMinioEndpoint := default (printf "releasea-minio.%s.svc.cluster.local:9000" $installNamespace) .Values.minio.endpoint }}
+{{- $resolvedMinioBucket := default "releasea-static" .Values.minio.bucket }}
+{{- $resolvedStaticNginxService := default "releasea-static-nginx" .Values.staticSite.nginxService }}
+{{- $resolvedStaticNginxNamespace := default $installNamespace .Values.staticSite.nginxNamespace }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "releasea-worker.fullname" . }}
+  namespace: {{ $installNamespace }}
   labels:
     app.kubernetes.io/name: {{ include "releasea-worker.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
@@ -40,8 +54,26 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           env:
+            - name: RELEASEA_BOOTSTRAP_PROFILE_VERSION
+              {{- if and (eq $bootstrapMode "same-cluster") (eq (trim $bootstrapProfileVersion) "") }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $sharedConfigMapName }}
+                  key: version
+                  optional: {{ $sharedOptional }}
+              {{- else }}
+              value: {{ $resolvedBootstrapProfileVersion | quote }}
+              {{- end }}
             - name: RELEASEA_API_BASE_URL
-              value: {{ .Values.api.baseUrl | quote }}
+              {{- if and (eq $bootstrapMode "same-cluster") (eq (trim .Values.api.baseUrl) "") }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $sharedConfigMapName }}
+                  key: apiBaseUrl
+                  optional: {{ $sharedOptional }}
+              {{- else }}
+              value: {{ $resolvedAPIBaseURL | quote }}
+              {{- end }}
             - name: WORKER_ID
               {{- if .Values.worker.id }}
               value: {{ .Values.worker.id | quote }}
@@ -63,7 +95,15 @@ spec:
                   fieldPath: metadata.namespace
               {{- end }}
             - name: WORKER_NAMESPACE_PREFIX
-              value: {{ .Values.namespacePrefix | quote }}
+              {{- if and (eq $bootstrapMode "same-cluster") (eq (trim .Values.namespacePrefix) "") }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $sharedConfigMapName }}
+                  key: namespacePrefix
+                  optional: {{ $sharedOptional }}
+              {{- else }}
+              value: {{ default "releasea-apps" .Values.namespacePrefix | quote }}
+              {{- end }}
             - name: WORKER_CLUSTER
               value: {{ .Values.cluster | quote }}
             - name: WORKER_VERSION
@@ -83,31 +123,127 @@ spec:
             - name: HEARTBEAT_INTERVAL_SECONDS
               value: {{ .Values.worker.heartbeatSeconds | quote }}
             - name: RABBITMQ_URL
-              value: {{ .Values.rabbitmq.url | quote }}
+              {{- if and (eq $bootstrapMode "same-cluster") (eq (trim .Values.rabbitmq.url) "") }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $sharedSecretName }}
+                  key: rabbitmqUrl
+                  optional: {{ $sharedOptional }}
+              {{- else }}
+              value: {{ $resolvedRabbitURL | quote }}
+              {{- end }}
             - name: RELEASEA_INTERNAL_DOMAIN
-              value: {{ $internalDomain | quote }}
+              {{- if and (eq $bootstrapMode "same-cluster") (eq (trim (default "" .Values.global.routing.internalDomain)) "") (eq (trim (default "" .Values.routing.internalDomain)) "") }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $sharedConfigMapName }}
+                  key: internalDomain
+                  optional: {{ $sharedOptional }}
+              {{- else }}
+              value: {{ $resolvedInternalDomain | quote }}
+              {{- end }}
             - name: RELEASEA_EXTERNAL_DOMAIN
-              value: {{ $externalDomain | quote }}
+              {{- if and (eq $bootstrapMode "same-cluster") (eq (trim (default "" .Values.global.routing.externalDomain)) "") (eq (trim (default "" .Values.routing.externalDomain)) "") }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $sharedConfigMapName }}
+                  key: externalDomain
+                  optional: {{ $sharedOptional }}
+              {{- else }}
+              value: {{ $resolvedExternalDomain | quote }}
+              {{- end }}
             - name: RELEASEA_INTERNAL_GATEWAY
-              value: {{ $internalGateway | quote }}
+              {{- if and (eq $bootstrapMode "same-cluster") (eq (trim (default "" .Values.global.routing.internalGateway)) "") (eq (trim (default "" .Values.routing.internalGateway)) "") }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $sharedConfigMapName }}
+                  key: internalGateway
+                  optional: {{ $sharedOptional }}
+              {{- else }}
+              value: {{ $resolvedInternalGateway | quote }}
+              {{- end }}
             - name: RELEASEA_EXTERNAL_GATEWAY
-              value: {{ $externalGateway | quote }}
+              {{- if and (eq $bootstrapMode "same-cluster") (eq (trim (default "" .Values.global.routing.externalGateway)) "") (eq (trim (default "" .Values.routing.externalGateway)) "") }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $sharedConfigMapName }}
+                  key: externalGateway
+                  optional: {{ $sharedOptional }}
+              {{- else }}
+              value: {{ $resolvedExternalGateway | quote }}
+              {{- end }}
             - name: RELEASEA_MINIO_ENDPOINT
-              value: {{ .Values.minio.endpoint | quote }}
+              {{- if and (eq $bootstrapMode "same-cluster") (eq (trim .Values.minio.endpoint) "") }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $sharedConfigMapName }}
+                  key: minioEndpoint
+                  optional: {{ $sharedOptional }}
+              {{- else }}
+              value: {{ $resolvedMinioEndpoint | quote }}
+              {{- end }}
             - name: RELEASEA_MINIO_ACCESS_KEY
+              {{- if and (eq $bootstrapMode "same-cluster") (eq (trim .Values.minio.accessKey) "") }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $sharedSecretName }}
+                  key: minioAccessKey
+                  optional: {{ $sharedOptional }}
+              {{- else }}
               value: {{ .Values.minio.accessKey | quote }}
+              {{- end }}
             - name: RELEASEA_MINIO_SECRET_KEY
+              {{- if and (eq $bootstrapMode "same-cluster") (eq (trim .Values.minio.secretKey) "") }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $sharedSecretName }}
+                  key: minioSecretKey
+                  optional: {{ $sharedOptional }}
+              {{- else }}
               value: {{ .Values.minio.secretKey | quote }}
+              {{- end }}
             - name: RELEASEA_MINIO_BUCKET
-              value: {{ .Values.minio.bucket | quote }}
+              {{- if and (eq $bootstrapMode "same-cluster") (eq (trim .Values.minio.bucket) "") }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $sharedConfigMapName }}
+                  key: minioBucket
+                  optional: {{ $sharedOptional }}
+              {{- else }}
+              value: {{ $resolvedMinioBucket | quote }}
+              {{- end }}
             - name: RELEASEA_MINIO_SECURE
+              {{- if and (eq $bootstrapMode "same-cluster") (not .Values.minio.secure) }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $sharedConfigMapName }}
+                  key: minioSecure
+                  optional: {{ $sharedOptional }}
+              {{- else }}
               value: {{ .Values.minio.secure | quote }}
+              {{- end }}
             - name: RELEASEA_STATIC_SITE_PREFIX
               value: {{ .Values.staticSite.prefix | quote }}
             - name: RELEASEA_STATIC_NGINX_SERVICE
-              value: {{ .Values.staticSite.nginxService | quote }}
+              {{- if and (eq $bootstrapMode "same-cluster") (eq (trim .Values.staticSite.nginxService) "") }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $sharedConfigMapName }}
+                  key: staticNginxService
+                  optional: {{ $sharedOptional }}
+              {{- else }}
+              value: {{ $resolvedStaticNginxService | quote }}
+              {{- end }}
             - name: RELEASEA_STATIC_NGINX_NAMESPACE
-              value: {{ .Values.staticSite.nginxNamespace | quote }}
+              {{- if and (eq $bootstrapMode "same-cluster") (eq (trim .Values.staticSite.nginxNamespace) "") }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $sharedConfigMapName }}
+                  key: staticNginxNamespace
+                  optional: {{ $sharedOptional }}
+              {{- else }}
+              value: {{ $resolvedStaticNginxNamespace | quote }}
+              {{- end }}
             {{- if .Values.dockerDinD.enabled }}
             - name: DOCKER_HOST
               value: {{ .Values.dockerDinD.workerDockerHost | quote }}
