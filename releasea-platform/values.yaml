@@ -7,12 +7,28 @@ global:
     internalGateway: "istio-system/releasea-internal-gateway"
     externalGateway: "istio-system/releasea-external-gateway"
 
+workerBootstrap:
+  enabled: true
+  mode: "same-cluster"
+  version: "1"
+  platformNamespace: ""
+  namespacePrefix: "releasea-apps"
+  configMapName: "releasea-worker-bootstrap"
+  secretName: "releasea-worker-bootstrap"
+  apiBaseUrl: ""
+  rabbitmqUrl: ""
+  minioEndpoint: ""
+  minioBucket: ""
+  minioSecure: null
+  staticNginxService: "releasea-static-nginx"
+  staticNginxNamespace: ""
+
 api:
   enabled: true
   replicaCount: 1
   image:
     repository: releasea/releasea-api
-    tag: "v1.5.8"
+    tag: "v1.6.0"
   service:
     type: ClusterIP
     port: 8070
@@ -28,7 +44,7 @@ console:
   replicaCount: 1
   image:
     repository: releasea/releasea-console
-    tag: "v1.6.0"
+    tag: "v1.7.0"
   service:
     type: ClusterIP
     port: 8080

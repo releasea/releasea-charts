@@ -1,0 +1,59 @@
+{{- if .Values.workerBootstrap.enabled }}
+{{- $platformNamespace := default .Release.Namespace .Values.workerBootstrap.platformNamespace }}
+{{- $configMapName := default "releasea-worker-bootstrap" .Values.workerBootstrap.configMapName }}
+{{- $secretName := default "releasea-worker-bootstrap" .Values.workerBootstrap.secretName }}
+{{- $mode := default "same-cluster" .Values.workerBootstrap.mode }}
+{{- $version := default "1" .Values.workerBootstrap.version }}
+{{- $apiBaseURL := default (printf "http://releasea-api.%s.svc.cluster.local:%v/api/v1" $platformNamespace .Values.api.service.port) .Values.workerBootstrap.apiBaseUrl }}
+{{- $rabbitURL := default (printf "amqp://%s:%s@releasea-rabbitmq.%s.svc.cluster.local:%v/" .Values.rabbitmq.auth.username .Values.rabbitmq.auth.password $platformNamespace .Values.rabbitmq.service.amqpPort) .Values.workerBootstrap.rabbitmqUrl }}
+{{- $internalDomain := include "releasea-platform.routing.internalDomain" . | trim }}
+{{- $externalDomain := include "releasea-platform.routing.externalDomain" . | trim }}
+{{- $internalGateway := include "releasea-platform.routing.internalGateway" . | trim }}
+{{- $externalGateway := include "releasea-platform.routing.externalGateway" . | trim }}
+{{- $namespacePrefix := default "releasea-apps" .Values.workerBootstrap.namespacePrefix }}
+{{- $minioEndpoint := default (printf "releasea-minio.%s.svc.cluster.local:%v" $platformNamespace .Values.minio.service.apiPort) .Values.workerBootstrap.minioEndpoint }}
+{{- $minioBucket := default .Values.minio.bucket .Values.workerBootstrap.minioBucket }}
+{{- $minioSecure := .Values.workerBootstrap.minioSecure }}
+{{- if eq $minioSecure nil }}
+{{- $minioSecure = .Values.minio.secure }}
+{{- end }}
+{{- $staticNginxService := default "releasea-static-nginx" .Values.workerBootstrap.staticNginxService }}
+{{- $staticNginxNamespace := default $platformNamespace .Values.workerBootstrap.staticNginxNamespace }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $configMapName }}
+  namespace: {{ $platformNamespace }}
+  labels:
+    {{- include "releasea-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker-bootstrap
+data:
+  mode: {{ $mode | quote }}
+  version: {{ $version | quote }}
+  platformNamespace: {{ $platformNamespace | quote }}
+  apiBaseUrl: {{ $apiBaseURL | quote }}
+  internalDomain: {{ $internalDomain | quote }}
+  externalDomain: {{ $externalDomain | quote }}
+  internalGateway: {{ $internalGateway | quote }}
+  externalGateway: {{ $externalGateway | quote }}
+  namespacePrefix: {{ $namespacePrefix | quote }}
+  minioEndpoint: {{ $minioEndpoint | quote }}
+  minioBucket: {{ $minioBucket | quote }}
+  minioSecure: {{ $minioSecure | quote }}
+  staticNginxService: {{ $staticNginxService | quote }}
+  staticNginxNamespace: {{ $staticNginxNamespace | quote }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $secretName }}
+  namespace: {{ $platformNamespace }}
+  labels:
+    {{- include "releasea-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker-bootstrap
+type: Opaque
+stringData:
+  rabbitmqUrl: {{ $rabbitURL | quote }}
+  minioAccessKey: {{ .Values.minio.accessKey | quote }}
+  minioSecretKey: {{ .Values.minio.secretKey | quote }}
+{{- end }}

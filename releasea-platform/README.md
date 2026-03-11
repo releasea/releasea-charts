@@ -4,6 +4,8 @@ Deploy the full Releasea platform in one namespace with `releasea-platform`.
 This chart includes API, Console, MongoDB, RabbitMQ, MinIO, Static Nginx, Prometheus, and Loki + Promtail.
 
 > **Note:** Workers are deployed **separately** using the [releasea-worker](../releasea-worker/) chart. See [Environments & Workers](https://docs.releasea.io/?doc=environments-and-workers) for details.
+>
+> This chart also publishes a shared worker bootstrap profile (`ConfigMap` + `Secret`) named `releasea-worker-bootstrap` in the platform namespace.
 
 ## Requirements
 
@@ -185,6 +187,25 @@ Adjust `className` and `host` to match your environment (`nginx`, `alb`, `traefi
 | `global.routing.externalDomain` | Default external domain used by platform routing | `releasea.external` |
 | `global.routing.internalGateway` | Default internal Istio gateway reference | `istio-system/releasea-internal-gateway` |
 | `global.routing.externalGateway` | Default external Istio gateway reference | `istio-system/releasea-external-gateway` |
+
+### Worker Bootstrap
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `workerBootstrap.enabled` | Publish shared worker bootstrap ConfigMap/Secret | `true` |
+| `workerBootstrap.mode` | Bootstrap mode consumed by workers | `same-cluster` |
+| `workerBootstrap.version` | Bootstrap profile version | `1` |
+| `workerBootstrap.platformNamespace` | Namespace used in generated worker endpoints (empty = release namespace) | `""` |
+| `workerBootstrap.namespacePrefix` | Default namespace prefix for worker payloads | `releasea-apps` |
+| `workerBootstrap.configMapName` | Shared ConfigMap name | `releasea-worker-bootstrap` |
+| `workerBootstrap.secretName` | Shared Secret name | `releasea-worker-bootstrap` |
+| `workerBootstrap.apiBaseUrl` | Worker API URL override (empty = generated) | `""` |
+| `workerBootstrap.rabbitmqUrl` | Worker RabbitMQ URL override (empty = generated) | `""` |
+| `workerBootstrap.minioEndpoint` | Worker MinIO endpoint override (empty = generated) | `""` |
+| `workerBootstrap.minioBucket` | Worker MinIO bucket override (empty = inherited from `minio.bucket`) | `""` |
+| `workerBootstrap.minioSecure` | Worker MinIO TLS override (null = inherited from `minio.secure`) | `null` |
+| `workerBootstrap.staticNginxService` | Worker static nginx service name | `releasea-static-nginx` |
+| `workerBootstrap.staticNginxNamespace` | Worker static nginx namespace (empty = platform namespace) | `""` |
 
 ### API
 

@@ -1,0 +1,9 @@
+{{- if .Values.install.createNamespace }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ include "releasea-worker.installNamespace" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "releasea-worker.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}

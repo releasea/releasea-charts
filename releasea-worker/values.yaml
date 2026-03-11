@@ -1,5 +1,17 @@
 replicaCount: 1
 
+install:
+  namespace: "releasea-system"
+  createNamespace: true
+
+bootstrap:
+  mode: "same-cluster"
+  profileVersion: ""
+  sharedConfig:
+    configMapName: "releasea-worker-bootstrap"
+    secretName: "releasea-worker-bootstrap"
+    optional: true
+
 global:
   routing:
     internalDomain: ""
@@ -9,12 +21,12 @@ global:
 
 image:
   repository: releasea/releasea-worker
-  tag: "v1.5.4"
+  tag: "v1.6.0"
   pullPolicy: IfNotPresent
 
 token: ""
 environment: "prod"
-namespacePrefix: "releasea-apps"
+namespacePrefix: ""
 tags: ""
 cluster: "k3d-local"
 
@@ -31,28 +43,28 @@ worker:
   dockerBuildNetwork: "host"
 
 api:
-  baseUrl: "http://releasea-api.releasea-system.svc.cluster.local:8070/api/v1"
+  baseUrl: ""
 
 rabbitmq:
-  url: "amqp://releasea:releasea@releasea-rabbitmq.releasea-system.svc.cluster.local:5672/"
+  url: ""
 
 routing:
-  internalDomain: "releasea.internal"
-  externalDomain: "releasea.external"
-  internalGateway: "istio-system/releasea-internal-gateway"
-  externalGateway: "istio-system/releasea-external-gateway"
+  internalDomain: ""
+  externalDomain: ""
+  internalGateway: ""
+  externalGateway: ""
 
 minio:
-  endpoint: "releasea-minio.releasea-system.svc.cluster.local:9000"
-  accessKey: "releasea"
-  secretKey: "releaseaadmin"
-  bucket: "releasea-static"
+  endpoint: ""
+  accessKey: ""
+  secretKey: ""
+  bucket: ""
   secure: false
 
 staticSite:
   prefix: "sites"
-  nginxService: "releasea-static-nginx"
-  nginxNamespace: "releasea-system"
+  nginxService: ""
+  nginxNamespace: ""
 
 resources: {}
 securityContext: {}
