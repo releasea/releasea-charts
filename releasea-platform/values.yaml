@@ -28,7 +28,7 @@ console:
   replicaCount: 1
   image:
     repository: releasea/releasea-console
-    tag: "v1.5.7"
+    tag: "v1.5.8"
   service:
     type: ClusterIP
     port: 8080
