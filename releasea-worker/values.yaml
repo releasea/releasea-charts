@@ -2,7 +2,7 @@ replicaCount: 1
 
 install:
   namespace: "releasea-system"
-  createNamespace: true
+  createNamespace: false
 
 bootstrap:
   mode: "same-cluster"
