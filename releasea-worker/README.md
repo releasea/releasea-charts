@@ -96,7 +96,7 @@ Only if your gateway resource names are different from defaults:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `api.baseUrl` | Releasea API base URL | `http://host.k3d.internal:8070/api/v1` |
+| `api.baseUrl` | Releasea API base URL | `http://releasea-api.releasea-system.svc.cluster.local:8070/api/v1` |
 | `rabbitmq.url` | RabbitMQ connection string | `amqp://releasea:releasea@releasea-rabbitmq.releasea-system.svc.cluster.local:5672/` |
 
 ### Routing

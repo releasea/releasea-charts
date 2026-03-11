@@ -31,7 +31,7 @@ worker:
   dockerBuildNetwork: "host"
 
 api:
-  baseUrl: "http://host.k3d.internal:8070/api/v1"
+  baseUrl: "http://releasea-api.releasea-system.svc.cluster.local:8070/api/v1"
 
 rabbitmq:
   url: "amqp://releasea:releasea@releasea-rabbitmq.releasea-system.svc.cluster.local:5672/"
