@@ -32,7 +32,7 @@ helm repo update
 helm upgrade --install releasea-worker releasea/releasea-worker \
   --set token=<worker-token> \
   --set environment=prod \
-  --set-string 'tags=prod\,build' \
+  --set tags='prod\,build' \
   --set worker.name=prod-worker
 ```
 
@@ -44,7 +44,7 @@ Use explicit overrides only when worker cannot read shared bootstrap config from
 helm upgrade --install releasea-worker releasea/releasea-worker \
   --set token=<worker-token> \
   --set environment=prod \
-  --set-string 'tags=prod\,build' \
+  --set tags='prod\,build' \
   --set worker.name=prod-worker \
   --set bootstrap.mode=external \
   --set-string install.namespace=releasea-system \
@@ -57,9 +57,9 @@ helm upgrade --install releasea-worker releasea/releasea-worker \
   --set-string global.routing.externalGateway=istio-system/releasea-external-gateway
 ```
 
-> **Base setup complete:** worker is registered with the short command. The chart defaults to shared bootstrap profile (`releasea-worker-bootstrap`) in `releasea-system`.
+> **Base setup complete:** worker is registered with the short command. The chart defaults to shared bootstrap profile (`releasea-worker-bootstrap`) in `releasea-system` and does not create the namespace automatically.
 >
-> **Tags format:** Helm splits `--set` values on commas, so use `--set-string 'tags=prod\,build'` for comma-separated tags. The chart also accepts list form: `--set 'tags[0]=prod' --set 'tags[1]=build'`.
+> **Tags format:** Helm splits `--set` values on commas, so use `--set tags='prod\,build'` for comma-separated tags. The chart also accepts list form: `--set 'tags[0]=prod' --set 'tags[1]=build'`.
 
 ## Parameters
 
@@ -68,7 +68,7 @@ helm upgrade --install releasea-worker releasea/releasea-worker \
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `install.namespace` | Namespace where worker resources are created | `releasea-system` |
-| `install.createNamespace` | Create install namespace if missing | `true` |
+| `install.createNamespace` | Create install namespace if missing | `false` |
 | `replicaCount` | Number of worker replicas | `1` |
 | `image.repository` | Worker image repository | `releasea/releasea-worker` |
 | `image.tag` | Worker image tag | `latest` |
