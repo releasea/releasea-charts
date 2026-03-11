@@ -15,6 +15,14 @@
 {{- $resolvedMinioBucket := default "releasea-static" .Values.minio.bucket }}
 {{- $resolvedStaticNginxService := default "releasea-static-nginx" .Values.staticSite.nginxService }}
 {{- $resolvedStaticNginxNamespace := default $installNamespace .Values.staticSite.nginxNamespace }}
+{{- $resolvedWorkerTags := "" }}
+{{- if kindIs "slice" .Values.tags }}
+{{- $resolvedWorkerTags = join "," .Values.tags }}
+{{- else if kindIs "string" .Values.tags }}
+{{- $resolvedWorkerTags = .Values.tags }}
+{{- else if .Values.tags }}
+{{- $resolvedWorkerTags = toString .Values.tags }}
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -109,7 +117,7 @@ spec:
             - name: WORKER_VERSION
               value: {{ $workerVersion | quote }}
             - name: WORKER_TAGS
-              value: {{ .Values.tags | quote }}
+              value: {{ $resolvedWorkerTags | quote }}
             - name: WORKER_DEPLOYMENT_NAME
               value: {{ include "releasea-worker.fullname" . | quote }}
             - name: WORKER_DEPLOYMENT_NAMESPACE

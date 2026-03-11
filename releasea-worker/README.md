@@ -32,7 +32,7 @@ helm repo update
 helm upgrade --install releasea-worker releasea/releasea-worker \
   --set token=<worker-token> \
   --set environment=prod \
-  --set tags=prod,build \
+  --set-string 'tags=prod\,build' \
   --set worker.name=prod-worker
 ```
 
@@ -44,7 +44,7 @@ Use explicit overrides only when worker cannot read shared bootstrap config from
 helm upgrade --install releasea-worker releasea/releasea-worker \
   --set token=<worker-token> \
   --set environment=prod \
-  --set tags=prod,build \
+  --set-string 'tags=prod\,build' \
   --set worker.name=prod-worker \
   --set bootstrap.mode=external \
   --set-string install.namespace=releasea-system \
@@ -58,6 +58,8 @@ helm upgrade --install releasea-worker releasea/releasea-worker \
 ```
 
 > **Base setup complete:** worker is registered with the short command. The chart defaults to shared bootstrap profile (`releasea-worker-bootstrap`) in `releasea-system`.
+>
+> **Tags format:** Helm splits `--set` values on commas, so use `--set-string 'tags=prod\,build'` for comma-separated tags. The chart also accepts list form: `--set 'tags[0]=prod' --set 'tags[1]=build'`.
 
 ## Parameters
 
@@ -74,7 +76,7 @@ helm upgrade --install releasea-worker releasea/releasea-worker \
 | `token` | Worker registration token | `""` |
 | `environment` | Target environment | `prod` |
 | `namespacePrefix` | Namespace prefix for app workloads (`same-cluster` reads from shared profile) | `""` |
-| `tags` | Comma-separated worker tags | `""` |
+| `tags` | Worker tags (`"prod,build"` or list `["prod","build"]`) | `""` |
 | `cluster` | Cluster identifier | `k3d-local` |
 
 ### Bootstrap Profile

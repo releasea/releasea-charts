@@ -1,8 +1,8 @@
 versioning:
   strategy: auto
   level: minor
-commit: f767701feab42ed932f1988be167806d35e0a45d
-generatedAt: 2026-03-11T03:13:40Z
+commit: 5ffaf8511c7e77e3c565d97cd161d81d472377c8
+generatedAt: 2026-03-11T04:14:00Z
 images:
   api: releasea/releasea-api:v1.6.0
   console: releasea/releasea-console:v1.7.0
