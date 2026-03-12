@@ -22,19 +22,24 @@ This chart includes API, Console, MongoDB, RabbitMQ, MinIO, Static Nginx, Promet
 
 ```bash
 helm repo add releasea https://releasea.github.io/releasea-charts
-helm repo update
+helm repo update releasea
 helm upgrade --install releasea releasea/releasea-platform \
-  -n releasea-system --create-namespace \
-  --set-string global.routing.internalDomain=internal.mycompany.com \
-  --set-string global.routing.externalDomain=apps.mycompany.com
+  -n releasea-system --create-namespace
 ```
 
-Optional: only when gateway resource names are different from defaults:
+By default, routing values are auto-discovered from Istio Gateways:
+- `istio-system/releasea-internal-gateway`
+- `istio-system/releasea-external-gateway`
+
+If your gateway names differ, override them:
 
 ```bash
---set-string global.routing.internalGateway=istio-system/releasea-internal-gateway \
---set-string global.routing.externalGateway=istio-system/releasea-external-gateway
+--set-string global.routing.gatewayNamespace=istio-system \
+--set-string global.routing.internalGatewayName=custom-internal-gateway \
+--set-string global.routing.externalGatewayName=custom-external-gateway
 ```
+
+If gateway hosts are not configured, chart rendering fails fast with a clear message.
 
 All components are enabled by default. Disable any with `--set <component>.enabled=false`:
 
@@ -172,8 +177,11 @@ Adjust `className` and `host` to match your environment (`nginx`, `alb`, `traefi
 
 ## Advanced Options
 
-- Keep gateway defaults and only set domains via `global.routing.internalDomain` and `global.routing.externalDomain`.
-- Override `global.routing.internalGateway` and `global.routing.externalGateway` only if your gateway names differ.
+- Default mode: `global.routing.mode=auto` (discover domains from Istio gateway hosts).
+- Explicit mode: set `global.routing.mode=explicit` and provide `global.routing.internalDomain` + `global.routing.externalDomain`.
+- Gateway reference overrides are available through:
+  `global.routing.gatewayNamespace`, `global.routing.internalGatewayName`, `global.routing.externalGatewayName`,
+  or full refs in `global.routing.internalGateway` / `global.routing.externalGateway`.
 
 ## Parameters
 
@@ -183,10 +191,14 @@ Adjust `className` and `host` to match your environment (`nginx`, `alb`, `traefi
 |-----------|-------------|---------|
 | `global.imageTag` | Default image tag for API and Console | `latest` |
 | `global.imagePullPolicy` | Image pull policy | `IfNotPresent` |
-| `global.routing.internalDomain` | Default internal domain used by platform routing | `releasea.internal` |
-| `global.routing.externalDomain` | Default external domain used by platform routing | `releasea.external` |
-| `global.routing.internalGateway` | Default internal Istio gateway reference | `istio-system/releasea-internal-gateway` |
-| `global.routing.externalGateway` | Default external Istio gateway reference | `istio-system/releasea-external-gateway` |
+| `global.routing.mode` | Routing resolution mode (`auto` discovers from Istio gateway hosts, `explicit` requires domains) | `auto` |
+| `global.routing.gatewayNamespace` | Namespace where routing gateways are searched | `istio-system` |
+| `global.routing.internalGatewayName` | Internal gateway name used for auto mode | `releasea-internal-gateway` |
+| `global.routing.externalGatewayName` | External gateway name used for auto mode | `releasea-external-gateway` |
+| `global.routing.internalDomain` | Internal domain override (`explicit` mode required) | `""` |
+| `global.routing.externalDomain` | External domain override (`explicit` mode required) | `""` |
+| `global.routing.internalGateway` | Full internal gateway ref override (`namespace/name`) | `""` |
+| `global.routing.externalGateway` | Full external gateway ref override (`namespace/name`) | `""` |
 
 ### Worker Bootstrap
 
@@ -197,8 +209,8 @@ Adjust `className` and `host` to match your environment (`nginx`, `alb`, `traefi
 | `workerBootstrap.version` | Bootstrap profile version | `1` |
 | `workerBootstrap.platformNamespace` | Namespace used in generated worker endpoints (empty = release namespace) | `""` |
 | `workerBootstrap.namespacePrefix` | Default namespace prefix for worker payloads | `releasea-apps` |
-| `workerBootstrap.configMapName` | Shared ConfigMap name | `releasea-worker-bootstrap` |
-| `workerBootstrap.secretName` | Shared Secret name | `releasea-worker-bootstrap` |
+| `workerBootstrap` shared ConfigMap name | Fixed shared ConfigMap | `releasea-worker-bootstrap` |
+| `workerBootstrap` shared Secret name | Fixed shared Secret | `releasea-worker-bootstrap` |
 | `workerBootstrap.apiBaseUrl` | Worker API URL override (empty = generated) | `""` |
 | `workerBootstrap.rabbitmqUrl` | Worker RabbitMQ URL override (empty = generated) | `""` |
 | `workerBootstrap.minioEndpoint` | Worker MinIO endpoint override (empty = generated) | `""` |

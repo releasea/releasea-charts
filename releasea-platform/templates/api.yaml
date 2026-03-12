@@ -7,8 +7,8 @@
 {{- $platformNamespace := default .Release.Namespace .Values.workerBootstrap.platformNamespace }}
 {{- $workerBootstrapMode := default "same-cluster" .Values.workerBootstrap.mode }}
 {{- $workerBootstrapVersion := default "1" .Values.workerBootstrap.version }}
-{{- $workerBootstrapConfigMap := default "releasea-worker-bootstrap" .Values.workerBootstrap.configMapName }}
-{{- $workerBootstrapSecret := default "releasea-worker-bootstrap" .Values.workerBootstrap.secretName }}
+{{- $workerBootstrapConfigMap := "releasea-worker-bootstrap" }}
+{{- $workerBootstrapSecret := "releasea-worker-bootstrap" }}
 {{- $workerBootstrapNamespacePrefix := default "releasea-apps" .Values.workerBootstrap.namespacePrefix }}
 {{- $workerBootstrapAPIBaseURL := default (printf "http://releasea-api.%s.svc.cluster.local:%v/api/v1" $platformNamespace .Values.api.service.port) .Values.workerBootstrap.apiBaseUrl }}
 {{- $workerBootstrapRabbitURL := default (printf "amqp://%s:%s@releasea-rabbitmq.%s.svc.cluster.local:%v/" .Values.rabbitmq.auth.username .Values.rabbitmq.auth.password $platformNamespace .Values.rabbitmq.service.amqpPort) .Values.workerBootstrap.rabbitmqUrl }}

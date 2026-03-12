@@ -38,6 +38,7 @@ metadata:
     {{- include "releasea-platform.labels" . | nindent 4 }}
     app.kubernetes.io/component: rabbitmq
 spec:
+  type: {{ default "ClusterIP" .Values.rabbitmq.service.type }}
   selector:
     app: releasea-rabbitmq
   ports:

@@ -1,7 +1,7 @@
 {{- if .Values.workerBootstrap.enabled }}
 {{- $platformNamespace := default .Release.Namespace .Values.workerBootstrap.platformNamespace }}
-{{- $configMapName := default "releasea-worker-bootstrap" .Values.workerBootstrap.configMapName }}
-{{- $secretName := default "releasea-worker-bootstrap" .Values.workerBootstrap.secretName }}
+{{- $configMapName := "releasea-worker-bootstrap" }}
+{{- $secretName := "releasea-worker-bootstrap" }}
 {{- $mode := default "same-cluster" .Values.workerBootstrap.mode }}
 {{- $version := default "1" .Values.workerBootstrap.version }}
 {{- $apiBaseURL := default (printf "http://releasea-api.%s.svc.cluster.local:%v/api/v1" $platformNamespace .Values.api.service.port) .Values.workerBootstrap.apiBaseUrl }}

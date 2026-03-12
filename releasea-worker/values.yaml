@@ -10,7 +10,7 @@ bootstrap:
   sharedConfig:
     configMapName: "releasea-worker-bootstrap"
     secretName: "releasea-worker-bootstrap"
-    optional: true
+    optional: false
 
 global:
   routing:
@@ -21,7 +21,7 @@ global:
 
 image:
   repository: releasea/releasea-worker
-  tag: "v1.6.0"
+  tag: "v1.7.0"
   pullPolicy: IfNotPresent
 
 token: ""
