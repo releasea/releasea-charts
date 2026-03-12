@@ -87,7 +87,7 @@ helm upgrade --install releasea-worker releasea/releasea-worker \
 | `bootstrap.profileVersion` | Bootstrap profile version reported in heartbeat (`same-cluster` reads from shared profile) | `""` |
 | `bootstrap.sharedConfig.configMapName` | Shared ConfigMap name | `releasea-worker-bootstrap` |
 | `bootstrap.sharedConfig.secretName` | Shared Secret name | `releasea-worker-bootstrap` |
-| `bootstrap.sharedConfig.optional` | Allow missing shared profile objects | `true` |
+| `bootstrap.sharedConfig.optional` | Allow missing shared profile objects | `false` |
 
 ### Worker Configuration
 

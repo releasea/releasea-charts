@@ -110,6 +110,7 @@ kind: Service
 metadata:
   name: releasea-loki
 spec:
+  type: {{ default "ClusterIP" .Values.loki.service.type }}
   selector:
     app: releasea-loki
   ports:

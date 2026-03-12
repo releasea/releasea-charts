@@ -45,7 +45,7 @@ spec:
       {{- $workerVersion := (coalesce .Values.worker.version .Chart.AppVersion) }}
       {{- if $workerVersion }}
       annotations:
-        releasea.dev/worker-version: {{ $workerVersion | quote }}
+        releasea.io/worker-version: {{ $workerVersion | quote }}
       {{- end }}
     spec:
       serviceAccountName: {{ include "releasea-worker.serviceAccountName" . }}

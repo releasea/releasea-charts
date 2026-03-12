@@ -163,6 +163,7 @@ kind: Service
 metadata:
   name: releasea-prometheus
 spec:
+  type: {{ default "ClusterIP" .Values.prometheus.service.type }}
   selector:
     app: releasea-prometheus
   ports:

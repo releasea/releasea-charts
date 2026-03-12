@@ -45,6 +45,7 @@ kind: Service
 metadata:
   name: releasea-minio
 spec:
+  type: {{ default "ClusterIP" .Values.minio.service.type }}
   selector:
     app: releasea-minio
   ports:

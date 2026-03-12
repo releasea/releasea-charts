@@ -2,10 +2,14 @@ global:
   imageTag: latest
   imagePullPolicy: IfNotPresent
   routing:
-    internalDomain: "releasea.internal"
-    externalDomain: "releasea.external"
-    internalGateway: "istio-system/releasea-internal-gateway"
-    externalGateway: "istio-system/releasea-external-gateway"
+    mode: "auto"
+    gatewayNamespace: "istio-system"
+    internalGatewayName: "releasea-internal-gateway"
+    externalGatewayName: "releasea-external-gateway"
+    internalDomain: ""
+    externalDomain: ""
+    internalGateway: ""
+    externalGateway: ""
 
 workerBootstrap:
   enabled: true
@@ -13,8 +17,6 @@ workerBootstrap:
   version: "1"
   platformNamespace: ""
   namespacePrefix: "releasea-apps"
-  configMapName: "releasea-worker-bootstrap"
-  secretName: "releasea-worker-bootstrap"
   apiBaseUrl: ""
   rabbitmqUrl: ""
   minioEndpoint: ""
@@ -28,7 +30,7 @@ api:
   replicaCount: 1
   image:
     repository: releasea/releasea-api
-    tag: "v1.6.0"
+    tag: "v1.7.0"
   service:
     type: ClusterIP
     port: 8070
@@ -44,7 +46,7 @@ console:
   replicaCount: 1
   image:
     repository: releasea/releasea-console
-    tag: "v1.9.0"
+    tag: "v1.10.0"
   service:
     type: ClusterIP
     port: 8080
@@ -67,6 +69,7 @@ rabbitmq:
   enabled: true
   image: rabbitmq:3.13-management
   service:
+    type: ClusterIP
     amqpPort: 5672
     managementPort: 15672
   auth:
@@ -77,6 +80,7 @@ minio:
   enabled: true
   image: minio/minio:latest
   service:
+    type: ClusterIP
     apiPort: 9000
     consolePort: 9001
   accessKey: releasea
@@ -102,6 +106,7 @@ prometheus:
   scrapeInterval: 30s
   evaluationInterval: 30s
   service:
+    type: ClusterIP
     port: 9090
   resources: {}
 
@@ -113,6 +118,7 @@ loki:
     enabled: false
     size: 10Gi
   service:
+    type: ClusterIP
     port: 3100
   promtail:
     enabled: true
