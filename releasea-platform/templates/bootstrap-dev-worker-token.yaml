@@ -1,0 +1,14 @@
+{{- include "releasea-platform.bootstrapDevWorker.validate" . }}
+{{- if (default true .Values.bootstrapDevWorker.enabled) }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "releasea-platform.bootstrapDevWorker.tokenSecretName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "releasea-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: bootstrap-dev-worker
+type: Opaque
+stringData:
+  token: {{ include "releasea-platform.bootstrapDevWorker.tokenValue" . | quote }}
+{{- end }}

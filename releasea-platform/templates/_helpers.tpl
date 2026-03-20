@@ -158,3 +158,43 @@ helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
   "defaultName" $gatewayName
 ) -}}
 {{- end -}}
+
+{{- define "releasea-platform.bootstrapDevWorker.enabled" -}}
+{{- ternary "true" "false" (default true .Values.bootstrapDevWorker.enabled) -}}
+{{- end -}}
+
+{{- define "releasea-platform.bootstrapDevWorker.validate" -}}
+{{- if (default true .Values.bootstrapDevWorker.enabled) -}}
+  {{- if not .Values.workerBootstrap.enabled -}}
+    {{- fail "bootstrapDevWorker.enabled=true requires workerBootstrap.enabled=true" -}}
+  {{- end -}}
+  {{- if not .Values.rabbitmq.enabled -}}
+    {{- fail "bootstrapDevWorker.enabled=true requires rabbitmq.enabled=true" -}}
+  {{- end -}}
+  {{- if and (not .Values.api.enabled) (eq (trim (default "" .Values.workerBootstrap.apiBaseUrl)) "") -}}
+    {{- fail "bootstrapDevWorker.enabled=true with api.enabled=false requires workerBootstrap.apiBaseUrl" -}}
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "releasea-platform.bootstrapDevWorker.fullname" -}}
+{{- printf "%s-bootstrap-dev-worker" (include "releasea-platform.fullname" .) -}}
+{{- end -}}
+
+{{- define "releasea-platform.bootstrapDevWorker.serviceAccountName" -}}
+{{- include "releasea-platform.bootstrapDevWorker.fullname" . -}}
+{{- end -}}
+
+{{- define "releasea-platform.bootstrapDevWorker.tokenSecretName" -}}
+{{- "releasea-bootstrap-dev-worker-token" -}}
+{{- end -}}
+
+{{- define "releasea-platform.bootstrapDevWorker.tokenValue" -}}
+{{- $secretName := include "releasea-platform.bootstrapDevWorker.tokenSecretName" . | trim -}}
+{{- $existing := lookup "v1" "Secret" .Release.Namespace $secretName -}}
+{{- if and $existing (hasKey $existing.data "token") -}}
+{{- index $existing.data "token" | b64dec -}}
+{{- else -}}
+{{- printf "frg_reg_%s" (randAlphaNum 24 | lower) -}}
+{{- end -}}
+{{- end -}}

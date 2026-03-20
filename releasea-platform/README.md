@@ -41,6 +41,14 @@ If your gateway names differ, override them:
 
 If gateway hosts are not configured, chart rendering fails fast with a clear message.
 
+The chart now bootstraps a managed `dev` worker by default so the first service can deploy immediately into `Development`. Disable it only when you explicitly do not want the quickstart worker:
+
+```bash
+helm upgrade --install releasea releasea/releasea-platform \
+  -n releasea-system --create-namespace \
+  --set bootstrapDevWorker.enabled=false
+```
+
 All components are enabled by default. Disable any with `--set <component>.enabled=false`:
 
 ```bash
@@ -218,6 +226,12 @@ Adjust `className` and `host` to match your environment (`nginx`, `alb`, `traefi
 | `workerBootstrap.minioSecure` | Worker MinIO TLS override (null = inherited from `minio.secure`) | `null` |
 | `workerBootstrap.staticNginxService` | Worker static nginx service name | `releasea-static-nginx` |
 | `workerBootstrap.staticNginxNamespace` | Worker static nginx namespace (empty = platform namespace) | `""` |
+
+### Bootstrap Dev Worker
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `bootstrapDevWorker.enabled` | Deploy the managed development worker with the platform quickstart profile | `true` |
 
 ### API
 
