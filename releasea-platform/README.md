@@ -1,11 +1,14 @@
 # Platform Chart Setup
 
 Deploy the full Releasea platform in one namespace with `releasea-platform`.
-This chart includes API, Console, MongoDB, RabbitMQ, MinIO, Static Nginx, Prometheus, and Loki + Promtail.
+This chart includes API, Console, MongoDB, RabbitMQ, MinIO, Static Nginx, Prometheus, Loki + Promtail, a shared worker bootstrap profile, and the managed quickstart Development worker.
 
-> **Note:** Workers are deployed **separately** using the [releasea-worker](../releasea-worker/) chart. See [Environments & Workers](https://docs.releasea.io/?doc=environments-and-workers) for details.
+> **Note:** The default quickstart install includes a managed `Development` worker. Additional workers for staging, production, or extra clusters are installed separately with the [releasea-worker](../releasea-worker/) chart.
 >
-> This chart also publishes a shared worker bootstrap profile (`ConfigMap` + `Secret`) named `releasea-worker-bootstrap` in the platform namespace.
+> See:
+> - [Installation](https://docs.releasea.io/?doc=installation)
+> - [Installation Modes](https://docs.releasea.io/?doc=installation-modes)
+> - [Environments & Workers](https://docs.releasea.io/?doc=environments-and-workers)
 
 ## Requirements
 
@@ -14,53 +17,11 @@ This chart includes API, Console, MongoDB, RabbitMQ, MinIO, Static Nginx, Promet
 | **Kubernetes** | Version 1.25+ (any conformant cluster) |
 | **kubectl** | Configured for your target cluster |
 | **Helm** | Version 3.14+ |
-| **Istio** | Installed separately (see Step 2) |
+| **Istio** | Installed separately before the platform chart when using default routing discovery |
 
 ## Base Setup (Required)
 
-### 1. Install the platform
-
-```bash
-helm repo add releasea https://releasea.github.io/releasea-charts
-helm repo update releasea
-helm upgrade --install releasea releasea/releasea-platform \
-  -n releasea-system --create-namespace
-```
-
-By default, routing values are auto-discovered from Istio Gateways:
-- `istio-system/releasea-internal-gateway`
-- `istio-system/releasea-external-gateway`
-
-If your gateway names differ, override them:
-
-```bash
---set-string global.routing.gatewayNamespace=istio-system \
---set-string global.routing.internalGatewayName=custom-internal-gateway \
---set-string global.routing.externalGatewayName=custom-external-gateway
-```
-
-If gateway hosts are not configured, chart rendering fails fast with a clear message.
-
-The chart now bootstraps a managed `dev` worker by default so the first service can deploy immediately into `Development`. Disable it only when you explicitly do not want the quickstart worker:
-
-```bash
-helm upgrade --install releasea releasea/releasea-platform \
-  -n releasea-system --create-namespace \
-  --set bootstrapDevWorker.enabled=false
-```
-
-All components are enabled by default. Disable any with `--set <component>.enabled=false`:
-
-```bash
-# Infrastructure only (no API, Console, or MongoDB)
-helm upgrade --install releasea releasea/releasea-platform \
-  -n releasea-system --create-namespace \
-  --set api.enabled=false \
-  --set console.enabled=false \
-  --set mongodb.enabled=false
-```
-
-### 2. Ensure Istio is installed
+### 1. Install Istio
 
 Istio minimum version: 1.20+.
 
@@ -85,18 +46,17 @@ kubectl -n istio-system get pods -l app=istiod
 kubectl get crd gateways.networking.istio.io
 ```
 
-### 3. Enable Istio sidecar injection
+### 2. Create or confirm routing Gateways
+
+By default, the chart uses `global.routing.mode=auto` and discovers domains from these Gateway objects:
+
+- `istio-system/releasea-internal-gateway`
+- `istio-system/releasea-external-gateway`
+
+Create them with your real domains in `hosts`:
 
 ```bash
-kubectl label namespace releasea-system istio-injection=enabled --overwrite
-```
-
-### 4. Create Istio gateways
-
-Use your real domains in `hosts` (`*.internal.mycompany.com`, `*.apps.mycompany.com`, etc.).
-
-```bash
-kubectl apply -f - <<'EOF'
+kubectl apply -f - <<'EOF_GATEWAYS'
 apiVersion: networking.istio.io/v1beta1
 kind: Gateway
 metadata:
@@ -126,31 +86,77 @@ spec:
     - port: { number: 443, name: https-external, protocol: HTTPS }
       tls: { mode: SIMPLE, credentialName: releasea-local-cert }
       hosts: ["*.releasea.external"]
-EOF
+EOF_GATEWAYS
 ```
 
-### 5. Configure TLS certificates (optional)
-
-Local development with [mkcert](https://github.com/FiloSottile/mkcert):
+If your Gateway names differ, override them during install:
 
 ```bash
-mkcert -install
-mkcert -cert-file releasea.pem -key-file releasea-key.pem "*.releasea.internal" "*.releasea.external"
-kubectl -n istio-system create secret tls releasea-local-cert --cert=releasea.pem --key=releasea-key.pem
+--set-string global.routing.gatewayNamespace=istio-system \
+--set-string global.routing.internalGatewayName=custom-internal-gateway \
+--set-string global.routing.externalGatewayName=custom-external-gateway
 ```
 
-Production: use [cert-manager](https://cert-manager.io/) or your CA to provide the `releasea-local-cert` secret.
+If you prefer not to depend on discovery, switch to explicit routing values:
 
-### 6. Validate and access the console
+```bash
+--set-string global.routing.mode=explicit \
+--set-string global.routing.internalDomain=internal.mycompany.com \
+--set-string global.routing.externalDomain=apps.mycompany.com
+```
+
+> `global.routing.mode=auto` depends on Gateway host discovery. `global.routing.mode=explicit` is the fallback when discovery is not available.
+
+### 3. Enable Istio sidecar injection for the platform namespace
+
+```bash
+kubectl create namespace releasea-system --dry-run=client -o yaml | kubectl apply -f -
+kubectl label namespace releasea-system istio-injection=enabled --overwrite
+```
+
+### 4. Install the platform
+
+```bash
+helm repo add releasea https://releasea.github.io/releasea-charts
+helm repo update releasea
+helm upgrade --install releasea releasea/releasea-platform \
+  -n releasea-system --create-namespace
+```
+
+The default install includes the managed quickstart worker for the `Development` environment. Disable it only when you intentionally want a platform install without that worker:
+
+```bash
+helm upgrade --install releasea releasea/releasea-platform \
+  -n releasea-system --create-namespace \
+  --set bootstrapDevWorker.enabled=false
+```
+
+All major platform components are enabled by default. Disable any with `--set <component>.enabled=false`:
+
+```bash
+helm upgrade --install releasea releasea/releasea-platform \
+  -n releasea-system --create-namespace \
+  --set api.enabled=false \
+  --set console.enabled=false \
+  --set mongodb.enabled=false
+```
+
+### 5. Validate the install and verify the Development worker
 
 ```bash
 kubectl -n releasea-system get pods
-kubectl -n releasea-system get svc
+kubectl -n releasea-system get deploy
+kubectl -n releasea-system get configmap releasea-worker-bootstrap
+kubectl -n releasea-system get secret releasea-worker-bootstrap
 ```
 
-All pods should be `Running`.
+You should see:
 
-> **Base setup complete:** the platform is installed and ready for first login.
+- the platform workloads in `Running`
+- the shared bootstrap objects named `releasea-worker-bootstrap`
+- the deployment `releasea-platform-bootstrap-dev-worker`
+
+### 6. Access the Console
 
 **Port-forward (quickest):**
 
@@ -169,6 +175,8 @@ Sign in with bootstrap credentials:
 
 Change the default password immediately after first login.
 
+From the Console, confirm the **Workers** page already shows the managed `Development` worker. If you disabled `bootstrapDevWorker.enabled`, register workers manually with the `releasea-worker` chart.
+
 **Ingress (cloud environments):**
 
 If you use an AWS ALB, Nginx Ingress, or similar controller, enable the Console ingress:
@@ -183,9 +191,40 @@ helm upgrade --install releasea releasea/releasea-platform \
 
 Adjust `className` and `host` to match your environment (`nginx`, `alb`, `traefik`, etc.).
 
+## Installation Modes
+
+Releasea exposes three public installation modes:
+
+- **Quickstart platform**: install `releasea-platform` with the managed `Development` worker enabled
+- **Platform-only / customized platform**: install `releasea-platform` with selected components, explicit routing, or external observability choices
+- **Standalone worker**: install `releasea-worker` for additional environments or remote clusters
+
+See the full comparison in [Installation Modes](https://docs.releasea.io/?doc=installation-modes).
+
+## Worker Bootstrap
+
+This chart publishes a shared worker bootstrap profile named `releasea-worker-bootstrap` in the platform namespace.
+
+It is composed of:
+
+- a `ConfigMap` with non-sensitive worker bootstrap values
+- a `Secret` with sensitive worker bootstrap values
+
+The profile is consumed by workers running in `same-cluster` mode and supplies:
+
+- API base URL
+- RabbitMQ URL
+- internal and external domains
+- internal and external gateway references
+- MinIO endpoint and bucket defaults
+- static site service endpoints
+- namespace prefix for generated workloads
+
+This shared profile is what makes the short `releasea-worker` Helm command work for same-cluster installs.
+
 ## Advanced Options
 
-- Default mode: `global.routing.mode=auto` (discover domains from Istio gateway hosts).
+- Default mode: `global.routing.mode=auto` (discover domains from Istio Gateway hosts).
 - Explicit mode: set `global.routing.mode=explicit` and provide `global.routing.internalDomain` + `global.routing.externalDomain`.
 - Gateway reference overrides are available through:
   `global.routing.gatewayNamespace`, `global.routing.internalGatewayName`, `global.routing.externalGatewayName`,
@@ -199,7 +238,7 @@ Adjust `className` and `host` to match your environment (`nginx`, `alb`, `traefi
 |-----------|-------------|---------|
 | `global.imageTag` | Default image tag for API and Console | `latest` |
 | `global.imagePullPolicy` | Image pull policy | `IfNotPresent` |
-| `global.routing.mode` | Routing resolution mode (`auto` discovers from Istio gateway hosts, `explicit` requires domains) | `auto` |
+| `global.routing.mode` | Routing resolution mode (`auto` discovers from Istio Gateway hosts, `explicit` requires domains) | `auto` |
 | `global.routing.gatewayNamespace` | Namespace where routing gateways are searched | `istio-system` |
 | `global.routing.internalGatewayName` | Internal gateway name used for auto mode | `releasea-internal-gateway` |
 | `global.routing.externalGatewayName` | External gateway name used for auto mode | `releasea-external-gateway` |
@@ -231,7 +270,7 @@ Adjust `className` and `host` to match your environment (`nginx`, `alb`, `traefi
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `bootstrapDevWorker.enabled` | Deploy the managed development worker with the platform quickstart profile | `true` |
+| `bootstrapDevWorker.enabled` | Deploy the managed Development worker with the platform quickstart profile | `true` |
 
 ### API
 
@@ -323,23 +362,24 @@ Adjust `className` and `host` to match your environment (`nginx`, `alb`, `traefi
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `loki.enabled` | Deploy standalone Loki | `true` |
-| `loki.isDefault` | Mark as default log store | `true` |
+| `loki.enabled` | Deploy Loki | `true` |
+| `loki.isDefault` | Mark Loki as default log backend for the platform | `true` |
 | `loki.image` | Loki image | `grafana/loki:3.1.1` |
-| `loki.service.port` | Service port | `3100` |
 | `loki.persistence.enabled` | Enable persistent volume | `false` |
 | `loki.persistence.size` | PVC size | `10Gi` |
+| `loki.service.port` | Service port | `3100` |
 | `loki.promtail.enabled` | Deploy Promtail DaemonSet | `true` |
 | `loki.promtail.image` | Promtail image | `grafana/promtail:3.1.1` |
+| `loki.grafana.enabled` | Deploy Grafana alongside Loki | `false` |
 | `loki.resources` | CPU/memory resource limits | `{}` |
 
 ## Observability
 
 The chart includes standalone Prometheus and Loki that work out of the box:
 
-- **Prometheus** scrapes kubelet/cAdvisor (CPU/memory), Istio Envoy sidecars (requests/latency), and annotated pods
-- **Loki + Promtail** collects logs from all pods across all namespaces via DaemonSet
-- The API connects automatically via `PROMETHEUS_URL` and `LOKI_URL` environment variables
+- **Prometheus** scrapes kubelet and cAdvisor metrics, Istio Envoy sidecars, and annotated pods
+- **Loki + Promtail** collects logs from pods across namespaces
+- the API connects automatically through `PROMETHEUS_URL` and `LOKI_URL`
 
 To use external monitoring stacks instead, disable the built-in ones and point the API to your endpoints:
 
@@ -353,7 +393,7 @@ helm upgrade --install releasea releasea/releasea-platform -n releasea-system \
 
 ## Service Names
 
-These names are referenced by the [releasea-worker](../releasea-worker/) chart and must not change:
+These service names are referenced by the shared worker bootstrap profile and by standalone workers in external mode:
 
 | Service | Port | Referenced By |
 |---------|------|---------------|
@@ -364,6 +404,24 @@ These names are referenced by the [releasea-worker](../releasea-worker/) chart a
 | `releasea-prometheus` | 9090 | API (`PROMETHEUS_URL`) |
 | `releasea-loki` | 3100 | API (`LOKI_URL`) |
 
+## Port Forwarding
+
+| Service | Command |
+|---------|---------|
+| **Console** | `kubectl -n releasea-system port-forward svc/releasea-console 8080:8080` |
+| **API** | `kubectl -n releasea-system port-forward svc/releasea-api 8070:8070` |
+| **RabbitMQ UI** | `kubectl -n releasea-system port-forward svc/releasea-rabbitmq 15672:15672` |
+| **Prometheus** | `kubectl -n releasea-system port-forward svc/releasea-prometheus 9090:9090` |
+| **Loki** | `kubectl -n releasea-system port-forward svc/releasea-loki 3100:3100` |
+| **MinIO Console** | `kubectl -n releasea-system port-forward svc/releasea-minio 9001:9001` |
+
+## Upgrades
+
+```bash
+helm repo update releasea
+helm upgrade releasea releasea/releasea-platform -n releasea-system
+```
+
 ## Uninstall
 
 ```bash
@@ -372,7 +430,27 @@ kubectl -n istio-system delete gateway releasea-internal-gateway releasea-extern
 kubectl delete namespace releasea-system
 ```
 
-> **Note:** Uninstalling the platform chart does not uninstall Istio. Manage Istio lifecycle separately.
+> Uninstalling the platform chart does not uninstall Istio. Manage Istio separately.
+
+## Troubleshooting
+
+| Problem | Likely Cause | Solution |
+|---------|-------------|----------|
+| Platform install fails before resources are created | Istio Gateways are missing or routing domains cannot be auto-discovered | Create the Gateways first or switch to `global.routing.mode=explicit` |
+| Bootstrap Development worker is missing | `bootstrapDevWorker.enabled=false` or deployment failed | Check the chart values and inspect `releasea-platform-bootstrap-dev-worker` |
+| Pods pending | Insufficient resources or missing storage class | Check node capacity and PVC status |
+| API unhealthy | MongoDB or RabbitMQ not reachable | Check pod status of dependent services |
+| Sidecar not injecting | Namespace not labeled | Re-run the namespace label step |
+| No metrics data | Prometheus RBAC or wrong URL | Check `PROMETHEUS_URL` and Prometheus logs |
+| No log data | Promtail not running or Loki unreachable | Check Promtail DaemonSet pods and Loki readiness |
+| Additional worker cannot connect | Invalid API URL, wrong bootstrap mode, or expired token | Verify `releasea-worker-bootstrap`, `bootstrap.mode`, and worker token |
+
+## Documentation
+
+- Platform install guide: [docs.releasea.io/?doc=installation](https://docs.releasea.io/?doc=installation)
+- Installation modes: [docs.releasea.io/?doc=installation-modes](https://docs.releasea.io/?doc=installation-modes)
+- Environments and workers: [docs.releasea.io/?doc=environments-and-workers](https://docs.releasea.io/?doc=environments-and-workers)
+- Public components: [docs.releasea.io/?doc=public-components](https://docs.releasea.io/?doc=public-components)
 
 ## License
 
