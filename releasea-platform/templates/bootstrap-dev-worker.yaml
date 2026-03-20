@@ -1,0 +1,237 @@
+{{- include "releasea-platform.bootstrapDevWorker.validate" . }}
+{{- if (default true .Values.bootstrapDevWorker.enabled) }}
+{{- $name := include "releasea-platform.bootstrapDevWorker.fullname" . }}
+{{- $serviceAccountName := include "releasea-platform.bootstrapDevWorker.serviceAccountName" . }}
+{{- $bootstrapConfigMapName := "releasea-worker-bootstrap" }}
+{{- $bootstrapSecretName := "releasea-worker-bootstrap" }}
+{{- $workerName := "Development Worker" }}
+{{- $workerNamespacePrefix := default "releasea-apps" .Values.workerBootstrap.namespacePrefix }}
+{{- $workerCluster := "quickstart-local" }}
+{{- $workerEnvironment := "dev" }}
+{{- $workerTagList := list "dev" "build" }}
+{{- $workerTags := join "," $workerTagList }}
+{{- $workerImageTag := include "releasea-platform.imageTag" (list "" .Values.global.imageTag) }}
+{{- $workerImagePullPolicy := .Values.global.imagePullPolicy }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $serviceAccountName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "releasea-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: bootstrap-dev-worker
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "releasea-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: bootstrap-dev-worker
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+  - nonResourceURLs: ["*"]
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "releasea-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: bootstrap-dev-worker
+subjects:
+  - kind: ServiceAccount
+    name: {{ $serviceAccountName }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ $name }}
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "releasea-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: bootstrap-dev-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "releasea-platform.name" . }}
+      app.kubernetes.io/component: bootstrap-dev-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "releasea-platform.name" . }}
+        app.kubernetes.io/component: bootstrap-dev-worker
+      annotations:
+        releasea.io/bootstrap-worker: "true"
+    spec:
+      serviceAccountName: {{ $serviceAccountName }}
+      containers:
+        - name: releasea-worker
+          image: "releasea/releasea-worker:{{ $workerImageTag }}"
+          imagePullPolicy: {{ $workerImagePullPolicy }}
+          env:
+            - name: RELEASEA_BOOTSTRAP_PROFILE_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $bootstrapConfigMapName }}
+                  key: version
+                  optional: false
+            - name: RELEASEA_API_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $bootstrapConfigMapName }}
+                  key: apiBaseUrl
+                  optional: false
+            - name: WORKER_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: WORKER_NAME
+              value: {{ $workerName | quote }}
+            - name: WORKER_ENVIRONMENT
+              value: {{ $workerEnvironment | quote }}
+            - name: WORKER_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: WORKER_NAMESPACE_PREFIX
+              value: {{ $workerNamespacePrefix | quote }}
+            - name: WORKER_CLUSTER
+              value: {{ $workerCluster | quote }}
+            - name: WORKER_VERSION
+              value: {{ $workerImageTag | quote }}
+            - name: WORKER_TAGS
+              value: {{ $workerTags | quote }}
+            - name: WORKER_DEPLOYMENT_NAME
+              value: {{ $name | quote }}
+            - name: WORKER_DEPLOYMENT_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: WORKER_DESIRED_AGENTS
+              value: "1"
+            - name: WORKER_QUEUE
+              value: "releasea.worker"
+            - name: HEARTBEAT_INTERVAL_SECONDS
+              value: "30"
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $bootstrapSecretName }}
+                  key: rabbitmqUrl
+                  optional: false
+            - name: RELEASEA_INTERNAL_DOMAIN
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $bootstrapConfigMapName }}
+                  key: internalDomain
+                  optional: false
+            - name: RELEASEA_EXTERNAL_DOMAIN
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $bootstrapConfigMapName }}
+                  key: externalDomain
+                  optional: false
+            - name: RELEASEA_INTERNAL_GATEWAY
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $bootstrapConfigMapName }}
+                  key: internalGateway
+                  optional: false
+            - name: RELEASEA_EXTERNAL_GATEWAY
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $bootstrapConfigMapName }}
+                  key: externalGateway
+                  optional: false
+            - name: RELEASEA_MINIO_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $bootstrapConfigMapName }}
+                  key: minioEndpoint
+                  optional: false
+            - name: RELEASEA_MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $bootstrapSecretName }}
+                  key: minioAccessKey
+                  optional: false
+            - name: RELEASEA_MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $bootstrapSecretName }}
+                  key: minioSecretKey
+                  optional: false
+            - name: RELEASEA_MINIO_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $bootstrapConfigMapName }}
+                  key: minioBucket
+                  optional: false
+            - name: RELEASEA_MINIO_SECURE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $bootstrapConfigMapName }}
+                  key: minioSecure
+                  optional: false
+            - name: RELEASEA_STATIC_SITE_PREFIX
+              value: {{ .Values.staticNginx.sitePrefix | quote }}
+            - name: RELEASEA_STATIC_NGINX_SERVICE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $bootstrapConfigMapName }}
+                  key: staticNginxService
+                  optional: false
+            - name: RELEASEA_STATIC_NGINX_NAMESPACE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $bootstrapConfigMapName }}
+                  key: staticNginxNamespace
+                  optional: false
+            - name: DOCKER_HOST
+              value: "tcp://localhost:2375"
+            - name: DOCKER_TLS_CERTDIR
+              value: ""
+            - name: DOCKER_BUILD_NETWORK
+              value: "host"
+            - name: RELEASEA_WORKER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "releasea-platform.bootstrapDevWorker.tokenSecretName" . }}
+                  key: token
+        - name: dind
+          image: "docker:28.2.2-dind"
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--host=tcp://0.0.0.0:2375"
+            - "--host=unix:///var/run/docker.sock"
+            - "--log-level=debug"
+            - "--insecure-registry=registry.localhost:5010"
+            - "--max-concurrent-downloads=10"
+          env:
+            - name: DOCKER_TLS_CERTDIR
+              value: ""
+            - name: DOCKERD_FLAGS
+              value: "--dns=8.8.8.8"
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: dind-storage
+              mountPath: /var/lib/docker
+            - name: dind-run
+              mountPath: /var/run
+      volumes:
+        - name: dind-storage
+          emptyDir: {}
+        - name: dind-run
+          emptyDir: {}
+{{- end }}

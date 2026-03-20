@@ -20,6 +20,16 @@
 {{- end }}
 {{- $workerBootstrapStaticService := default "releasea-static-nginx" .Values.workerBootstrap.staticNginxService }}
 {{- $workerBootstrapStaticNamespace := default $platformNamespace .Values.workerBootstrap.staticNginxNamespace }}
+{{- $bootstrapDevWorkerEnabled := default true .Values.bootstrapDevWorker.enabled }}
+{{- $bootstrapDevWorkerTokenSecretName := include "releasea-platform.bootstrapDevWorker.tokenSecretName" . | trim }}
+{{- $bootstrapDevWorkerID := "wkr-reg-bootstrap-dev" }}
+{{- $bootstrapDevWorkerName := "Development Worker" }}
+{{- $bootstrapDevWorkerEnvironment := "dev" }}
+{{- $bootstrapDevWorkerNamespace := $platformNamespace }}
+{{- $bootstrapDevWorkerNamespacePrefix := $workerBootstrapNamespacePrefix }}
+{{- $bootstrapDevWorkerCluster := "quickstart-local" }}
+{{- $bootstrapDevWorkerTags := "dev,build" }}
+{{- $bootstrapDevWorkerNotes := "Managed bootstrap worker for quickstart and local installs." }}
 {{- $internalDomain := coalesce (index $apiEnv "RELEASEA_INTERNAL_DOMAIN") $routingInternalDomain }}
 {{- $externalDomain := coalesce (index $apiEnv "RELEASEA_EXTERNAL_DOMAIN") $routingExternalDomain }}
 {{- $internalGateway := coalesce (index $apiEnv "RELEASEA_INTERNAL_GATEWAY") $routingInternalGateway }}
@@ -104,6 +114,31 @@ spec:
               value: {{ $workerBootstrapStaticService | quote }}
             - name: RELEASEA_WORKER_BOOTSTRAP_STATIC_NGINX_NAMESPACE
               value: {{ $workerBootstrapStaticNamespace | quote }}
+            - name: RELEASEA_BOOTSTRAP_DEV_WORKER_ENABLED
+              value: {{ $bootstrapDevWorkerEnabled | quote }}
+            - name: RELEASEA_BOOTSTRAP_DEV_WORKER_ID
+              value: {{ $bootstrapDevWorkerID | quote }}
+            - name: RELEASEA_BOOTSTRAP_DEV_WORKER_NAME
+              value: {{ $bootstrapDevWorkerName | quote }}
+            - name: RELEASEA_BOOTSTRAP_DEV_WORKER_ENVIRONMENT
+              value: {{ $bootstrapDevWorkerEnvironment | quote }}
+            - name: RELEASEA_BOOTSTRAP_DEV_WORKER_NAMESPACE
+              value: {{ $bootstrapDevWorkerNamespace | quote }}
+            - name: RELEASEA_BOOTSTRAP_DEV_WORKER_NAMESPACE_PREFIX
+              value: {{ $bootstrapDevWorkerNamespacePrefix | quote }}
+            - name: RELEASEA_BOOTSTRAP_DEV_WORKER_CLUSTER
+              value: {{ $bootstrapDevWorkerCluster | quote }}
+            - name: RELEASEA_BOOTSTRAP_DEV_WORKER_TAGS
+              value: {{ $bootstrapDevWorkerTags | quote }}
+            - name: RELEASEA_BOOTSTRAP_DEV_WORKER_NOTES
+              value: {{ $bootstrapDevWorkerNotes | quote }}
+            {{- if $bootstrapDevWorkerEnabled }}
+            - name: RELEASEA_BOOTSTRAP_DEV_WORKER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $bootstrapDevWorkerTokenSecretName }}
+                  key: token
+            {{- end }}
           readinessProbe:
             httpGet:
               path: /api/v1/health
