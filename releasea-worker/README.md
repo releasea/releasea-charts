@@ -3,7 +3,13 @@
 Deploy Releasea workers in target clusters with `releasea-worker`.
 Workers execute deploy and operations jobs for a specific environment.
 
-> **Note:** This chart is deployed **separately** from `releasea-platform`. See [Environments & Workers](https://docs.releasea.io/?doc=environments-and-workers) for registration and management details.
+> **Note:** The short Helm command is the standard path for same-cluster workers because `releasea-platform` publishes the shared bootstrap profile `releasea-worker-bootstrap`.
+>
+> Use standalone workers for:
+> - Staging and Production environments
+> - extra Development workers
+> - additional clusters
+> - remote clusters that cannot consume the platform bootstrap profile
 
 ## Requirements
 
@@ -23,7 +29,7 @@ Workers execute deploy and operations jobs for a specific environment.
 2. Fill worker name, environment, tags, cluster, and namespace prefix.
 3. Copy the generated token.
 
-### 2. Install chart in target cluster
+### 2. Install chart in the target cluster
 
 ```bash
 helm repo add releasea https://releasea.github.io/releasea-charts
@@ -36,9 +42,11 @@ helm upgrade --install releasea-worker releasea/releasea-worker \
   --set worker.name=prod-worker
 ```
 
-### 3. Advanced mode (remote/custom cluster only)
+This short command is valid when the worker runs in the same cluster as the platform and can consume `releasea-worker-bootstrap` from `releasea-system`.
 
-Use explicit overrides only when worker cannot read shared bootstrap config from the platform namespace:
+### 3. Use advanced mode only for remote or custom topologies
+
+Use explicit overrides only when the worker cannot read the shared bootstrap config from the platform namespace:
 
 ```bash
 helm upgrade --install releasea-worker releasea/releasea-worker \
@@ -57,9 +65,40 @@ helm upgrade --install releasea-worker releasea/releasea-worker \
   --set-string global.routing.externalGateway=istio-system/releasea-external-gateway
 ```
 
-> **Base setup complete:** worker is registered with the short command. The chart defaults to shared bootstrap profile (`releasea-worker-bootstrap`) in `releasea-system` and does not create the namespace automatically.
->
 > **Tags format:** Helm splits `--set` values on commas, so use `--set tags='prod\,build'` for comma-separated tags. The chart also accepts list form: `--set 'tags[0]=prod' --set 'tags[1]=build'`.
+
+## Worker Bootstrap Profile
+
+The shared bootstrap profile is named `releasea-worker-bootstrap`.
+
+It is created by `releasea-platform` and consists of:
+
+- a `ConfigMap` with non-sensitive bootstrap values
+- a `Secret` with sensitive bootstrap values
+
+In `same-cluster` mode, the worker reads this profile to obtain:
+
+- API base URL
+- RabbitMQ URL
+- internal and external domains
+- internal and external gateway references
+- MinIO endpoint and bucket defaults
+- static site service endpoints
+- namespace prefix for generated workloads
+
+This is what keeps the standard worker install command short.
+
+Use `bootstrap.mode=external` only when the worker cannot use the shared profile, such as a remote cluster or a fully customized network layout.
+
+## Installation Modes
+
+Releasea exposes three public install paths:
+
+- **Quickstart platform**: install `releasea-platform`, which already includes the managed Development worker
+- **Platform-only / customized platform**: install `releasea-platform` with selected changes and add workers intentionally
+- **Standalone worker**: install `releasea-worker` for additional environments or clusters
+
+See the full comparison in [Installation Modes](https://docs.releasea.io/?doc=installation-modes).
 
 ## Parameters
 
@@ -146,7 +185,7 @@ helm upgrade --install releasea-worker releasea/releasea-worker \
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `resources` | CPU/memory resource limits | `{}` |
+| `resources` | CPU and memory resource limits | `{}` |
 | `securityContext` | Pod security context | `{}` |
 | `nodeSelector` | Node selector labels | `{}` |
 | `tolerations` | Pod tolerations | `[]` |
@@ -167,8 +206,15 @@ helm upgrade --install releasea-worker releasea/releasea-worker \
 | `dockerDinD.pullPolicy` | Image pull policy | `IfNotPresent` |
 | `dockerDinD.args` | Extra daemon arguments | See `values.yaml` |
 | `dockerDinD.env` | Extra environment variables | See `values.yaml` |
-| `dockerDinD.resources` | CPU/memory resource limits | `{}` |
+| `dockerDinD.resources` | CPU and memory resource limits | `{}` |
 | `dockerDinD.workerDockerHost` | Docker host URI for the worker | `tcp://localhost:2375` |
+
+## Documentation
+
+- Installation guide: [docs.releasea.io/?doc=installation](https://docs.releasea.io/?doc=installation)
+- Installation modes: [docs.releasea.io/?doc=installation-modes](https://docs.releasea.io/?doc=installation-modes)
+- Environments and workers: [docs.releasea.io/?doc=environments-and-workers](https://docs.releasea.io/?doc=environments-and-workers)
+- Public components: [docs.releasea.io/?doc=public-components](https://docs.releasea.io/?doc=public-components)
 
 ## License
 
