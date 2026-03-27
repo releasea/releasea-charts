@@ -45,6 +45,9 @@ spec:
   resources:
     requests:
       storage: {{ .Values.loki.persistence.size }}
+  {{- if .Values.loki.persistence.storageClassName }}
+  storageClassName: {{ .Values.loki.persistence.storageClassName | quote }}
+  {{- end }}
 {{- end }}
 ---
 apiVersion: apps/v1
@@ -62,9 +65,25 @@ spec:
     metadata:
       labels:
         app: releasea-loki
+      {{- with .Values.loki.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     spec:
       securityContext:
         fsGroup: 10001
+      {{- with .Values.loki.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.loki.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.loki.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: loki
           image: {{ .Values.loki.image | quote }}

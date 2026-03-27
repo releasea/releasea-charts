@@ -1,4 +1,23 @@
 {{- if .Values.rabbitmq.enabled }}
+{{- if .Values.rabbitmq.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: releasea-rabbitmq-data
+  labels:
+    {{- include "releasea-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.rabbitmq.persistence.size }}
+  {{- if .Values.rabbitmq.persistence.storageClassName }}
+  storageClassName: {{ .Values.rabbitmq.persistence.storageClassName | quote }}
+  {{- end }}
+---
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,7 +34,23 @@ spec:
     metadata:
       labels:
         app: releasea-rabbitmq
+      {{- with .Values.rabbitmq.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     spec:
+      {{- with .Values.rabbitmq.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.rabbitmq.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.rabbitmq.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: rabbitmq
           image: {{ .Values.rabbitmq.image | quote }}
@@ -29,6 +64,21 @@ spec:
               name: amqp
             - containerPort: {{ .Values.rabbitmq.service.managementPort }}
               name: management
+          {{- if .Values.rabbitmq.persistence.enabled }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/rabbitmq
+          {{- end }}
+          {{- with .Values.rabbitmq.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- if .Values.rabbitmq.persistence.enabled }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: releasea-rabbitmq-data
+      {{- end }}
 ---
 apiVersion: v1
 kind: Service

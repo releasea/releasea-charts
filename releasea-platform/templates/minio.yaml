@@ -1,4 +1,20 @@
 {{- if .Values.minio.enabled }}
+{{- if .Values.minio.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: releasea-minio-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.minio.persistence.size }}
+  {{- if .Values.minio.persistence.storageClassName }}
+  storageClassName: {{ .Values.minio.persistence.storageClassName | quote }}
+  {{- end }}
+---
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -12,7 +28,23 @@ spec:
     metadata:
       labels:
         app: releasea-minio
+      {{- with .Values.minio.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     spec:
+      {{- with .Values.minio.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.minio.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.minio.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: minio
           image: {{ .Values.minio.image | quote }}
@@ -34,10 +66,15 @@ spec:
             - name: data
               mountPath: /data
           {{- end }}
+          {{- with .Values.minio.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
       {{- if .Values.minio.persistence.enabled }}
       volumes:
         - name: data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: releasea-minio-data
       {{- end }}
 ---
 apiVersion: v1

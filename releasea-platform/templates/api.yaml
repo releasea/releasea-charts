@@ -58,7 +58,27 @@ spec:
       labels:
         app.kubernetes.io/name: {{ include "releasea-platform.name" . }}
         app.kubernetes.io/component: api
+      {{- with .Values.api.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     spec:
+      {{- with .Values.api.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: api
           image: "{{ .Values.api.image.repository }}:{{ include "releasea-platform.imageTag" (list .Values.api.image.tag .Values.global.imageTag) }}"
@@ -151,6 +171,10 @@ spec:
               port: {{ .Values.api.service.port }}
             initialDelaySeconds: 20
             periodSeconds: 15
+          {{- with .Values.api.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
 ---
 apiVersion: v1
 kind: Service
@@ -168,4 +192,20 @@ spec:
     - name: http
       port: {{ .Values.api.service.port }}
       targetPort: {{ .Values.api.service.port }}
+{{- if .Values.api.podDisruptionBudget.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "releasea-platform.fullname" . }}-api
+  labels:
+    {{- include "releasea-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  minAvailable: {{ .Values.api.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "releasea-platform.name" . }}
+      app.kubernetes.io/component: api
+{{- end }}
 {{- end }}

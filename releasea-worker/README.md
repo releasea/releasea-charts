@@ -100,6 +100,8 @@ Releasea exposes three public install paths:
 
 See the full comparison in [Installation Modes](https://docs.releasea.io/?doc=installation-modes).
 
+Validate the platform baseline before adding standalone workers by running [Quickstart Validation](https://docs.releasea.io/?doc=smoke-checks).
+
 ## Parameters
 
 ### Core
@@ -213,6 +215,7 @@ See the full comparison in [Installation Modes](https://docs.releasea.io/?doc=in
 
 - Installation guide: [docs.releasea.io/?doc=installation](https://docs.releasea.io/?doc=installation)
 - Installation modes: [docs.releasea.io/?doc=installation-modes](https://docs.releasea.io/?doc=installation-modes)
+- Quickstart validation: [docs.releasea.io/?doc=smoke-checks](https://docs.releasea.io/?doc=smoke-checks)
 - Environments and workers: [docs.releasea.io/?doc=environments-and-workers](https://docs.releasea.io/?doc=environments-and-workers)
 - Public components: [docs.releasea.io/?doc=public-components](https://docs.releasea.io/?doc=public-components)
 

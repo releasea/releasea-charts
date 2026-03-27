@@ -16,6 +16,8 @@ This README is intentionally short and routes users to the detailed install docu
 
 - Platform install guide: [docs.releasea.io/?doc=installation](https://docs.releasea.io/?doc=installation)
 - Installation modes: [docs.releasea.io/?doc=installation-modes](https://docs.releasea.io/?doc=installation-modes)
+- Quickstart validation: [docs.releasea.io/?doc=smoke-checks](https://docs.releasea.io/?doc=smoke-checks)
+- Production profile: [docs.releasea.io/?doc=production-profile](https://docs.releasea.io/?doc=production-profile)
 - Environments and workers: [docs.releasea.io/?doc=environments-and-workers](https://docs.releasea.io/?doc=environments-and-workers)
 - Public components: [docs.releasea.io/?doc=public-components](https://docs.releasea.io/?doc=public-components)
 - Platform chart details: [releasea-platform/README.md](./releasea-platform/README.md)
