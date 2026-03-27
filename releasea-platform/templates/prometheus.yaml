@@ -116,6 +116,25 @@ data:
           - source_labels: [__meta_kubernetes_pod_name]
             action: replace
             target_label: pod
+{{- if .Values.prometheus.persistence.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: releasea-prometheus-data
+  labels:
+    {{- include "releasea-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.prometheus.persistence.size }}
+  {{- if .Values.prometheus.persistence.storageClassName }}
+  storageClassName: {{ .Values.prometheus.persistence.storageClassName | quote }}
+  {{- end }}
+{{- end }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -130,8 +149,24 @@ spec:
     metadata:
       labels:
         app: releasea-prometheus
+      {{- with .Values.prometheus.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     spec:
       serviceAccountName: releasea-prometheus
+      {{- with .Values.prometheus.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.prometheus.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.prometheus.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: prometheus
           image: {{ .Values.prometheus.image | quote }}
@@ -156,7 +191,12 @@ spec:
           configMap:
             name: releasea-prometheus-config
         - name: data
+          {{- if .Values.prometheus.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: releasea-prometheus-data
+          {{- else }}
           emptyDir: {}
+          {{- end }}
 ---
 apiVersion: v1
 kind: Service

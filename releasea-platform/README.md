@@ -8,6 +8,8 @@ This chart includes API, Console, MongoDB, RabbitMQ, MinIO, Static Nginx, Promet
 > See:
 > - [Installation](https://docs.releasea.io/?doc=installation)
 > - [Installation Modes](https://docs.releasea.io/?doc=installation-modes)
+> - [Quickstart Validation](https://docs.releasea.io/?doc=smoke-checks)
+> - [Production Profile](https://docs.releasea.io/?doc=production-profile)
 > - [Environments & Workers](https://docs.releasea.io/?doc=environments-and-workers)
 
 ## Requirements
@@ -177,6 +179,56 @@ Change the default password immediately after first login.
 
 From the Console, confirm the **Workers** page already shows the managed `Development` worker. If you disabled `bootstrapDevWorker.enabled`, register workers manually with the `releasea-worker` chart.
 
+## Smoke Validation
+
+After the platform is reachable, run the official smoke path in [Quickstart Validation](https://docs.releasea.io/?doc=smoke-checks).
+
+That validation confirms:
+
+- platform pods are healthy
+- `releasea-worker-bootstrap` exists
+- the managed `Development` worker is online
+- Console login works
+- a real deploy can complete in `Development`
+
+## Production Profile
+
+The chart now ships an opinionated baseline file named `values-production.yaml`.
+
+Use it when you want a more durable and operationally predictable install than the quickstart path. The bundled production profile:
+
+- disables the managed quickstart Development worker
+- scales API and Console to `2` replicas
+- enables `PodDisruptionBudget` resources for API and Console
+- enables PVC-backed storage for MongoDB, RabbitMQ, MinIO, Prometheus, and Loki
+- adds resource requests and limits for the main services
+
+Example:
+
+```bash
+helm upgrade --install releasea releasea/releasea-platform \
+  -n releasea-system --create-namespace \
+  -f values-production.yaml \
+  --set-string global.routing.internalDomain=internal.mycompany.com \
+  --set-string global.routing.externalDomain=apps.mycompany.com
+```
+
+Use the bundled file as a starting point, then review at minimum:
+
+- routing domains
+- storage classes
+- image tags
+- MinIO and RabbitMQ credentials
+- Console ingress or external access path
+
+Important boundary:
+
+- API and Console gain basic HA posture through multiple replicas.
+- Stateful dependencies remain single-instance in the bundled chart.
+- PVC-backed storage improves durability, but it does not replace replicated data services.
+
+If you need stronger uptime or recovery guarantees, treat this file as a baseline and move stateful services to a customized or managed topology. See [Production Profile](https://docs.releasea.io/?doc=production-profile) for the full rollout guidance.
+
 **Ingress (cloud environments):**
 
 If you use an AWS ALB, Nginx Ingress, or similar controller, enable the Console ingress:
@@ -229,6 +281,20 @@ This shared profile is what makes the short `releasea-worker` Helm command work 
 - Gateway reference overrides are available through:
   `global.routing.gatewayNamespace`, `global.routing.internalGatewayName`, `global.routing.externalGatewayName`,
   or full refs in `global.routing.internalGateway` / `global.routing.externalGateway`.
+
+## Production Tuning Knobs
+
+The chart now exposes the core scheduling and durability knobs needed by the bundled production profile:
+
+- `api.resources`, `api.nodeSelector`, `api.tolerations`, `api.affinity`, `api.topologySpreadConstraints`
+- `api.podDisruptionBudget.enabled`, `api.podDisruptionBudget.minAvailable`
+- `console.resources`, `console.nodeSelector`, `console.tolerations`, `console.affinity`, `console.topologySpreadConstraints`
+- `console.podDisruptionBudget.enabled`, `console.podDisruptionBudget.minAvailable`
+- `mongodb.resources`, `mongodb.persistence.storageClassName`
+- `rabbitmq.resources`, `rabbitmq.persistence.enabled`, `rabbitmq.persistence.size`, `rabbitmq.persistence.storageClassName`
+- `minio.resources`, `minio.persistence.storageClassName`
+- `prometheus.persistence.enabled`, `prometheus.persistence.size`, `prometheus.persistence.storageClassName`
+- `loki.persistence.storageClassName`
 
 ## Parameters
 
@@ -449,6 +515,7 @@ kubectl delete namespace releasea-system
 
 - Platform install guide: [docs.releasea.io/?doc=installation](https://docs.releasea.io/?doc=installation)
 - Installation modes: [docs.releasea.io/?doc=installation-modes](https://docs.releasea.io/?doc=installation-modes)
+- Quickstart validation: [docs.releasea.io/?doc=smoke-checks](https://docs.releasea.io/?doc=smoke-checks)
 - Environments and workers: [docs.releasea.io/?doc=environments-and-workers](https://docs.releasea.io/?doc=environments-and-workers)
 - Public components: [docs.releasea.io/?doc=public-components](https://docs.releasea.io/?doc=public-components)
 

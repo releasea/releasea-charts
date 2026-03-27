@@ -17,7 +17,27 @@ spec:
       labels:
         app.kubernetes.io/name: {{ include "releasea-platform.name" . }}
         app.kubernetes.io/component: console
+      {{- with .Values.console.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     spec:
+      {{- with .Values.console.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.console.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.console.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.console.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: console
           image: "{{ .Values.console.image.repository }}:{{ include "releasea-platform.imageTag" (list .Values.console.image.tag .Values.global.imageTag) }}"
@@ -30,6 +50,16 @@ spec:
               port: {{ .Values.console.service.port }}
             initialDelaySeconds: 8
             periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.console.service.port }}
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          {{- with .Values.console.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
 ---
 apiVersion: v1
 kind: Service
@@ -47,6 +77,22 @@ spec:
     - name: http
       port: {{ .Values.console.service.port }}
       targetPort: {{ .Values.console.service.port }}
+{{- if .Values.console.podDisruptionBudget.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "releasea-platform.fullname" . }}-console
+  labels:
+    {{- include "releasea-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: console
+spec:
+  minAvailable: {{ .Values.console.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "releasea-platform.name" . }}
+      app.kubernetes.io/component: console
+{{- end }}
 {{- if .Values.console.ingress.enabled }}
 ---
 apiVersion: networking.k8s.io/v1
