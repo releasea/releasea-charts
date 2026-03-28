@@ -10,6 +10,7 @@ This chart includes API, Console, MongoDB, RabbitMQ, MinIO, Static Nginx, Promet
 > - [Installation Modes](https://docs.releasea.io/?doc=installation-modes)
 > - [Quickstart Validation](https://docs.releasea.io/?doc=smoke-checks)
 > - [Production Profile](https://docs.releasea.io/?doc=production-profile)
+> - [Production Runbooks](https://docs.releasea.io/?doc=production-runbooks)
 > - [Environments & Workers](https://docs.releasea.io/?doc=environments-and-workers)
 
 ## Requirements
@@ -193,7 +194,10 @@ That validation confirms:
 
 ## Production Profile
 
-The chart now ships an opinionated baseline file named `values-production.yaml`.
+The chart now ships two opinionated production-oriented baseline files:
+
+- `values-production.yaml`: hardened install using the bundled internal stateful services
+- `values-production-external.yaml`: hardened install using external MongoDB, RabbitMQ, MinIO, Prometheus, and Loki
 
 Use it when you want a more durable and operationally predictable install than the quickstart path. The bundled production profile:
 
@@ -212,6 +216,18 @@ helm upgrade --install releasea releasea/releasea-platform \
   --set-string global.routing.internalDomain=internal.mycompany.com \
   --set-string global.routing.externalDomain=apps.mycompany.com
 ```
+
+Example with external managed dependencies:
+
+```bash
+helm upgrade --install releasea releasea/releasea-platform \
+  -n releasea-system --create-namespace \
+  -f values-production-external.yaml \
+  --set-string global.routing.internalDomain=internal.mycompany.com \
+  --set-string global.routing.externalDomain=apps.mycompany.com
+```
+
+For the secure production path, create Kubernetes Secrets first and let the chart reuse them through `existingSecret` references. The exact secret layout and runbook steps are in [Production Runbooks](https://docs.releasea.io/?doc=production-runbooks).
 
 Use the bundled file as a starting point, then review at minimum:
 
@@ -291,10 +307,11 @@ The chart now exposes the core scheduling and durability knobs needed by the bun
 - `console.resources`, `console.nodeSelector`, `console.tolerations`, `console.affinity`, `console.topologySpreadConstraints`
 - `console.podDisruptionBudget.enabled`, `console.podDisruptionBudget.minAvailable`
 - `mongodb.resources`, `mongodb.persistence.storageClassName`
-- `rabbitmq.resources`, `rabbitmq.persistence.enabled`, `rabbitmq.persistence.size`, `rabbitmq.persistence.storageClassName`
-- `minio.resources`, `minio.persistence.storageClassName`
-- `prometheus.persistence.enabled`, `prometheus.persistence.size`, `prometheus.persistence.storageClassName`
-- `loki.persistence.storageClassName`
+- `mongodb.external.uri`
+- `rabbitmq.resources`, `rabbitmq.persistence.enabled`, `rabbitmq.persistence.size`, `rabbitmq.persistence.storageClassName`, `rabbitmq.external.url`
+- `minio.resources`, `minio.persistence.storageClassName`, `minio.external.endpoint`, `minio.external.accessKey`, `minio.external.secretKey`, `minio.external.bucket`, `minio.external.secure`
+- `prometheus.persistence.enabled`, `prometheus.persistence.size`, `prometheus.persistence.storageClassName`, `prometheus.external.url`
+- `loki.persistence.storageClassName`, `loki.external.url`
 
 ## Parameters
 
@@ -348,7 +365,7 @@ The chart now exposes the core scheduling and durability knobs needed by the bun
 | `api.image.tag` | API image tag (overrides global) | `""` |
 | `api.service.type` | Service type | `ClusterIP` |
 | `api.service.port` | Service port | `8070` |
-| `api.env` | Environment variables (key-value map). Routing envs (`RELEASEA_*_DOMAIN`, `RELEASEA_*_GATEWAY`) are auto-derived from `global.routing` unless explicitly set here. | See `values.yaml` |
+| `api.env` | Environment variables (key-value map). Routing and core dependency envs (`RELEASEA_*_DOMAIN`, `RELEASEA_*_GATEWAY`, `MONGO_URI`, `RABBITMQ_URL`, `PROMETHEUS_URL`, `LOKI_URL`) are computed by the chart unless explicitly overridden here. | See `values.yaml` |
 
 ### Console
 
@@ -374,6 +391,7 @@ The chart now exposes the core scheduling and durability knobs needed by the bun
 | `mongodb.service.port` | Service port | `27017` |
 | `mongodb.persistence.enabled` | Enable persistent volume | `false` |
 | `mongodb.persistence.size` | PVC size | `8Gi` |
+| `mongodb.external.uri` | External MongoDB URI used when internal MongoDB is disabled | `""` |
 
 ### RabbitMQ
 
@@ -385,6 +403,9 @@ The chart now exposes the core scheduling and durability knobs needed by the bun
 | `rabbitmq.service.managementPort` | Management UI port | `15672` |
 | `rabbitmq.auth.username` | Default username | `releasea` |
 | `rabbitmq.auth.password` | Default password | `releasea` |
+| `rabbitmq.persistence.enabled` | Enable persistent volume | `false` |
+| `rabbitmq.persistence.size` | PVC size | `8Gi` |
+| `rabbitmq.external.url` | External RabbitMQ AMQP URL used when internal RabbitMQ is disabled | `""` |
 
 ### MinIO
 
@@ -399,6 +420,11 @@ The chart now exposes the core scheduling and durability knobs needed by the bun
 | `minio.bucket` | Default bucket name | `releasea-static` |
 | `minio.persistence.enabled` | Enable persistent volume | `false` |
 | `minio.persistence.size` | PVC size | `10Gi` |
+| `minio.external.endpoint` | External MinIO or S3-compatible endpoint without scheme | `""` |
+| `minio.external.accessKey` | External MinIO access key | `""` |
+| `minio.external.secretKey` | External MinIO secret key | `""` |
+| `minio.external.bucket` | External bucket override | `""` |
+| `minio.external.secure` | External MinIO TLS toggle | `null` |
 
 ### Static Nginx
 
@@ -423,6 +449,7 @@ The chart now exposes the core scheduling and durability knobs needed by the bun
 | `prometheus.evaluationInterval` | Rule evaluation interval | `30s` |
 | `prometheus.service.port` | Service port | `9090` |
 | `prometheus.resources` | CPU/memory resource limits | `{}` |
+| `prometheus.external.url` | External Prometheus base URL used when built-in Prometheus is disabled | `""` |
 
 ### Loki
 
@@ -438,6 +465,7 @@ The chart now exposes the core scheduling and durability knobs needed by the bun
 | `loki.promtail.image` | Promtail image | `grafana/promtail:3.1.1` |
 | `loki.grafana.enabled` | Deploy Grafana alongside Loki | `false` |
 | `loki.resources` | CPU/memory resource limits | `{}` |
+| `loki.external.url` | External Loki base URL used when built-in Loki is disabled | `""` |
 
 ## Observability
 
@@ -447,15 +475,21 @@ The chart includes standalone Prometheus and Loki that work out of the box:
 - **Loki + Promtail** collects logs from pods across namespaces
 - the API connects automatically through `PROMETHEUS_URL` and `LOKI_URL`
 
-To use external monitoring stacks instead, disable the built-in ones and point the API to your endpoints:
+To use external monitoring stacks instead, disable the built-in ones and set the dedicated external URLs:
 
 ```bash
 helm upgrade --install releasea releasea/releasea-platform -n releasea-system \
   --set prometheus.enabled=false \
   --set loki.enabled=false \
-  --set "api.env.PROMETHEUS_URL=http://your-prometheus:9090" \
-  --set "api.env.LOKI_URL=http://your-loki:3100"
+  --set-string prometheus.external.url=http://your-prometheus:9090 \
+  --set-string loki.external.url=http://your-loki:3100
 ```
+
+The same pattern exists for the other internal dependencies:
+
+- `mongodb.external.uri`
+- `rabbitmq.external.url`
+- `minio.external.*`
 
 ## Service Names
 
@@ -469,6 +503,8 @@ These service names are referenced by the shared worker bootstrap profile and by
 | `releasea-static-nginx` | 80 | Worker (`staticSite.nginxService`) |
 | `releasea-prometheus` | 9090 | API (`PROMETHEUS_URL`) |
 | `releasea-loki` | 3100 | API (`LOKI_URL`) |
+
+When you disable internal dependencies and use `*.external.*` values instead, these service names are no longer part of the active topology for that dependency. The chart publishes the external URLs into the API and worker bootstrap profile automatically.
 
 ## Port Forwarding
 

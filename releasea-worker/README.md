@@ -90,6 +90,13 @@ This is what keeps the standard worker install command short.
 
 Use `bootstrap.mode=external` only when the worker cannot use the shared profile, such as a remote cluster or a fully customized network layout.
 
+If the platform reuses an existing secret instead of creating `releasea-worker-bootstrap`, the short command still works as long as that secret keeps the same name and default keys. When a customized secret name or key layout is used, override:
+
+- `bootstrap.sharedConfig.secretName`
+- `bootstrap.sharedConfig.keys.rabbitmqUrl`
+- `bootstrap.sharedConfig.keys.minioAccessKey`
+- `bootstrap.sharedConfig.keys.minioSecretKey`
+
 ## Installation Modes
 
 Releasea exposes three public install paths:
@@ -129,6 +136,9 @@ Validate the platform baseline before adding standalone workers by running [Quic
 | `bootstrap.sharedConfig.configMapName` | Shared ConfigMap name | `releasea-worker-bootstrap` |
 | `bootstrap.sharedConfig.secretName` | Shared Secret name | `releasea-worker-bootstrap` |
 | `bootstrap.sharedConfig.optional` | Allow missing shared profile objects | `false` |
+| `bootstrap.sharedConfig.keys.rabbitmqUrl` | RabbitMQ URL key inside the shared Secret | `rabbitmqUrl` |
+| `bootstrap.sharedConfig.keys.minioAccessKey` | MinIO access key inside the shared Secret | `minioAccessKey` |
+| `bootstrap.sharedConfig.keys.minioSecretKey` | MinIO secret key inside the shared Secret | `minioSecretKey` |
 
 ### Worker Configuration
 

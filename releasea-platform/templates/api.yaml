@@ -5,18 +5,26 @@
 {{- $routingInternalGateway := include "releasea-platform.routing.internalGateway" . | trim }}
 {{- $routingExternalGateway := include "releasea-platform.routing.externalGateway" . | trim }}
 {{- $platformNamespace := default .Release.Namespace .Values.workerBootstrap.platformNamespace }}
+{{- $mongodbExistingSecretName := default "" .Values.mongodb.external.existingSecret.name }}
+{{- $mongodbExistingSecretKey := default "uri" .Values.mongodb.external.existingSecret.uriKey }}
+{{- $rabbitExistingSecretName := default "" .Values.rabbitmq.external.existingSecret.name }}
+{{- $rabbitExistingSecretKey := default "rabbitmqUrl" .Values.rabbitmq.external.existingSecret.urlKey }}
+{{- $mongoURI := coalesce (index $apiEnv "MONGO_URI") .Values.mongodb.external.uri (ternary (printf "mongodb://releasea-mongodb:%v/releasea" .Values.mongodb.service.port) "" .Values.mongodb.enabled) }}
+{{- $rabbitURL := coalesce (index $apiEnv "RABBITMQ_URL") .Values.rabbitmq.external.url (ternary (printf "amqp://%s:%s@releasea-rabbitmq.%s.svc.cluster.local:%v/" .Values.rabbitmq.auth.username .Values.rabbitmq.auth.password $platformNamespace .Values.rabbitmq.service.amqpPort) "" .Values.rabbitmq.enabled) }}
+{{- $prometheusURL := coalesce (index $apiEnv "PROMETHEUS_URL") .Values.prometheus.external.url (ternary (printf "http://releasea-prometheus:%v" .Values.prometheus.service.port) "" .Values.prometheus.enabled) }}
+{{- $lokiURL := coalesce (index $apiEnv "LOKI_URL") .Values.loki.external.url (ternary (printf "http://releasea-loki:%v" .Values.loki.service.port) "" .Values.loki.enabled) }}
 {{- $workerBootstrapMode := default "same-cluster" .Values.workerBootstrap.mode }}
 {{- $workerBootstrapVersion := default "1" .Values.workerBootstrap.version }}
 {{- $workerBootstrapConfigMap := "releasea-worker-bootstrap" }}
-{{- $workerBootstrapSecret := "releasea-worker-bootstrap" }}
+{{- $workerBootstrapSecret := include "releasea-platform.workerBootstrap.secretName" . | trim }}
 {{- $workerBootstrapNamespacePrefix := default "releasea-apps" .Values.workerBootstrap.namespacePrefix }}
 {{- $workerBootstrapAPIBaseURL := default (printf "http://releasea-api.%s.svc.cluster.local:%v/api/v1" $platformNamespace .Values.api.service.port) .Values.workerBootstrap.apiBaseUrl }}
-{{- $workerBootstrapRabbitURL := default (printf "amqp://%s:%s@releasea-rabbitmq.%s.svc.cluster.local:%v/" .Values.rabbitmq.auth.username .Values.rabbitmq.auth.password $platformNamespace .Values.rabbitmq.service.amqpPort) .Values.workerBootstrap.rabbitmqUrl }}
-{{- $workerBootstrapMinioEndpoint := default (printf "releasea-minio.%s.svc.cluster.local:%v" $platformNamespace .Values.minio.service.apiPort) .Values.workerBootstrap.minioEndpoint }}
-{{- $workerBootstrapMinioBucket := default .Values.minio.bucket .Values.workerBootstrap.minioBucket }}
+{{- $workerBootstrapRabbitURL := default $rabbitURL .Values.workerBootstrap.rabbitmqUrl }}
+{{- $workerBootstrapMinioEndpoint := default (coalesce .Values.minio.external.endpoint (ternary (printf "releasea-minio.%s.svc.cluster.local:%v" $platformNamespace .Values.minio.service.apiPort) "" .Values.minio.enabled)) .Values.workerBootstrap.minioEndpoint }}
+{{- $workerBootstrapMinioBucket := default (coalesce .Values.minio.external.bucket .Values.minio.bucket) .Values.workerBootstrap.minioBucket }}
 {{- $workerBootstrapMinioSecure := .Values.workerBootstrap.minioSecure }}
 {{- if eq $workerBootstrapMinioSecure nil }}
-{{- $workerBootstrapMinioSecure = .Values.minio.secure }}
+{{- $workerBootstrapMinioSecure = coalesce .Values.minio.external.secure .Values.minio.secure }}
 {{- end }}
 {{- $workerBootstrapStaticService := default "releasea-static-nginx" .Values.workerBootstrap.staticNginxService }}
 {{- $workerBootstrapStaticNamespace := default $platformNamespace .Values.workerBootstrap.staticNginxNamespace }}
@@ -39,6 +47,10 @@
   "RELEASEA_EXTERNAL_DOMAIN" true
   "RELEASEA_INTERNAL_GATEWAY" true
   "RELEASEA_EXTERNAL_GATEWAY" true
+  "MONGO_URI" true
+  "RABBITMQ_URL" true
+  "PROMETHEUS_URL" true
+  "LOKI_URL" true
 }}
 apiVersion: apps/v1
 kind: Deployment
@@ -100,6 +112,33 @@ spec:
               value: {{ $internalGateway | quote }}
             - name: RELEASEA_EXTERNAL_GATEWAY
               value: {{ $externalGateway | quote }}
+            - name: MONGO_URI
+              {{- if and (eq (default "" (index $apiEnv "MONGO_URI")) "") (ne $mongodbExistingSecretName "") }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $mongodbExistingSecretName }}
+                  key: {{ $mongodbExistingSecretKey }}
+              {{- else }}
+              value: {{ $mongoURI | quote }}
+              {{- end }}
+            - name: RABBITMQ_URL
+              {{- if and (eq (default "" (index $apiEnv "RABBITMQ_URL")) "") (ne $rabbitExistingSecretName "") }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $rabbitExistingSecretName }}
+                  key: {{ $rabbitExistingSecretKey }}
+              {{- else if and (eq (default "" (index $apiEnv "RABBITMQ_URL")) "") (eq $rabbitURL "") (ne $workerBootstrapSecret "") }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $workerBootstrapSecret }}
+                  key: {{ default "rabbitmqUrl" .Values.workerBootstrap.existingSecret.rabbitmqUrlKey }}
+              {{- else }}
+              value: {{ $rabbitURL | quote }}
+              {{- end }}
+            - name: PROMETHEUS_URL
+              value: {{ $prometheusURL | quote }}
+            - name: LOKI_URL
+              value: {{ $lokiURL | quote }}
             - name: RELEASEA_SYSTEM_NAMESPACE
               value: {{ $platformNamespace | quote }}
             - name: RELEASEA_WORKER_BOOTSTRAP_MODE
