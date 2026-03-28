@@ -1,0 +1,2 @@
+{{- include "releasea-platform.bootstrapDevWorker.validate" . -}}
+{{- include "releasea-platform.dependencies.validate" . -}}

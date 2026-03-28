@@ -11,6 +11,10 @@ bootstrap:
     configMapName: "releasea-worker-bootstrap"
     secretName: "releasea-worker-bootstrap"
     optional: false
+    keys:
+      rabbitmqUrl: "rabbitmqUrl"
+      minioAccessKey: "minioAccessKey"
+      minioSecretKey: "minioSecretKey"
 
 global:
   routing:
@@ -21,7 +25,7 @@ global:
 
 image:
   repository: releasea/releasea-worker
-  tag: "v1.8.0"
+  tag: "v1.9.0"
   pullPolicy: IfNotPresent
 
 token: ""

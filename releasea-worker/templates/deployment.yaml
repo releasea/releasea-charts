@@ -5,6 +5,9 @@
 {{- $sharedConfigMapName := default "releasea-worker-bootstrap" .Values.bootstrap.sharedConfig.configMapName }}
 {{- $sharedSecretName := default "releasea-worker-bootstrap" .Values.bootstrap.sharedConfig.secretName }}
 {{- $sharedOptional := default true .Values.bootstrap.sharedConfig.optional }}
+{{- $sharedRabbitmqUrlKey := default "rabbitmqUrl" .Values.bootstrap.sharedConfig.keys.rabbitmqUrl }}
+{{- $sharedMinioAccessKey := default "minioAccessKey" .Values.bootstrap.sharedConfig.keys.minioAccessKey }}
+{{- $sharedMinioSecretKey := default "minioSecretKey" .Values.bootstrap.sharedConfig.keys.minioSecretKey }}
 {{- $resolvedInternalDomain := coalesce .Values.global.routing.internalDomain .Values.routing.internalDomain "releasea.internal" }}
 {{- $resolvedExternalDomain := coalesce .Values.global.routing.externalDomain .Values.routing.externalDomain "releasea.external" }}
 {{- $resolvedInternalGateway := coalesce .Values.global.routing.internalGateway .Values.routing.internalGateway "istio-system/releasea-internal-gateway" }}
@@ -135,7 +138,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ $sharedSecretName }}
-                  key: rabbitmqUrl
+                  key: {{ $sharedRabbitmqUrlKey }}
                   optional: {{ $sharedOptional }}
               {{- else }}
               value: {{ $resolvedRabbitURL | quote }}
@@ -195,7 +198,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ $sharedSecretName }}
-                  key: minioAccessKey
+                  key: {{ $sharedMinioAccessKey }}
                   optional: {{ $sharedOptional }}
               {{- else }}
               value: {{ .Values.minio.accessKey | quote }}
@@ -205,7 +208,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ $sharedSecretName }}
-                  key: minioSecretKey
+                  key: {{ $sharedMinioSecretKey }}
                   optional: {{ $sharedOptional }}
               {{- else }}
               value: {{ .Values.minio.secretKey | quote }}

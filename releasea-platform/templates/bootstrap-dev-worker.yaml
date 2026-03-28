@@ -3,7 +3,10 @@
 {{- $name := include "releasea-platform.bootstrapDevWorker.fullname" . }}
 {{- $serviceAccountName := include "releasea-platform.bootstrapDevWorker.serviceAccountName" . }}
 {{- $bootstrapConfigMapName := "releasea-worker-bootstrap" }}
-{{- $bootstrapSecretName := "releasea-worker-bootstrap" }}
+{{- $bootstrapSecretName := include "releasea-platform.workerBootstrap.secretName" . | trim }}
+{{- $bootstrapRabbitmqKey := default "rabbitmqUrl" .Values.workerBootstrap.existingSecret.rabbitmqUrlKey }}
+{{- $bootstrapMinioAccessKeyKey := default "minioAccessKey" .Values.workerBootstrap.existingSecret.minioAccessKeyKey }}
+{{- $bootstrapMinioSecretKeyKey := default "minioSecretKey" .Values.workerBootstrap.existingSecret.minioSecretKeyKey }}
 {{- $workerName := "Development Worker" }}
 {{- $workerNamespacePrefix := default "releasea-apps" .Values.workerBootstrap.namespacePrefix }}
 {{- $workerCluster := "quickstart-local" }}
@@ -127,7 +130,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ $bootstrapSecretName }}
-                  key: rabbitmqUrl
+                  key: {{ $bootstrapRabbitmqKey }}
                   optional: false
             - name: RELEASEA_INTERNAL_DOMAIN
               valueFrom:
@@ -163,13 +166,13 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ $bootstrapSecretName }}
-                  key: minioAccessKey
+                  key: {{ $bootstrapMinioAccessKeyKey }}
                   optional: false
             - name: RELEASEA_MINIO_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ $bootstrapSecretName }}
-                  key: minioSecretKey
+                  key: {{ $bootstrapMinioSecretKeyKey }}
                   optional: false
             - name: RELEASEA_MINIO_BUCKET
               valueFrom:

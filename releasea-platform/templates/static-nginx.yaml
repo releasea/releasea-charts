@@ -1,6 +1,13 @@
 {{- if .Values.staticNginx.enabled }}
 {{- $internalDomain := include "releasea-platform.routing.internalDomain" . | trim }}
 {{- $externalDomain := include "releasea-platform.routing.externalDomain" . | trim }}
+{{- $minioEndpoint := coalesce .Values.minio.external.endpoint (ternary (printf "releasea-minio.%s.svc.cluster.local:%v" .Release.Namespace .Values.minio.service.apiPort) "" .Values.minio.enabled) }}
+{{- $minioBucket := coalesce .Values.minio.external.bucket .Values.minio.bucket }}
+{{- $minioSecure := .Values.minio.external.secure }}
+{{- if eq $minioSecure nil }}
+{{- $minioSecure = .Values.minio.secure }}
+{{- end }}
+{{- $minioScheme := ternary "https" "http" $minioSecure }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -35,19 +42,19 @@ data:
         }
 
         location / {
-          proxy_set_header Host releasea-minio.{{ .Release.Namespace }}.svc.cluster.local;
+          proxy_set_header Host {{ $minioEndpoint }};
           proxy_set_header X-Forwarded-Host $host;
           proxy_set_header X-Forwarded-Proto $scheme;
           proxy_set_header X-Real-IP $remote_addr;
           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
           proxy_intercept_errors on;
           error_page 404 = /__static_fallback;
-          proxy_pass http://releasea-minio.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.minio.service.apiPort }}/{{ .Values.minio.bucket }}/{{ .Values.staticNginx.sitePrefix }}/$site_prefix$uri;
+          proxy_pass {{ $minioScheme }}://{{ $minioEndpoint }}/{{ $minioBucket }}/{{ .Values.staticNginx.sitePrefix }}/$site_prefix$uri;
         }
 
         location = /__static_fallback {
-          proxy_set_header Host releasea-minio.{{ .Release.Namespace }}.svc.cluster.local;
-          proxy_pass http://releasea-minio.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.minio.service.apiPort }}/{{ .Values.minio.bucket }}/{{ .Values.staticNginx.sitePrefix }}/$site_prefix/index.html;
+          proxy_set_header Host {{ $minioEndpoint }};
+          proxy_pass {{ $minioScheme }}://{{ $minioEndpoint }}/{{ $minioBucket }}/{{ .Values.staticNginx.sitePrefix }}/$site_prefix/index.html;
         }
       }
     }

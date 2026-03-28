@@ -163,17 +163,37 @@ helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 {{- ternary "true" "false" (default true .Values.bootstrapDevWorker.enabled) -}}
 {{- end -}}
 
+{{- define "releasea-platform.workerBootstrap.secretName" -}}
+{{- default "releasea-worker-bootstrap" .Values.workerBootstrap.existingSecret.name -}}
+{{- end -}}
+
 {{- define "releasea-platform.bootstrapDevWorker.validate" -}}
 {{- if (default true .Values.bootstrapDevWorker.enabled) -}}
   {{- if not .Values.workerBootstrap.enabled -}}
     {{- fail "bootstrapDevWorker.enabled=true requires workerBootstrap.enabled=true" -}}
   {{- end -}}
-  {{- if not .Values.rabbitmq.enabled -}}
-    {{- fail "bootstrapDevWorker.enabled=true requires rabbitmq.enabled=true" -}}
+  {{- if and (not .Values.rabbitmq.enabled) (eq (trim (default "" .Values.rabbitmq.external.url)) "") (eq (trim (default "" .Values.rabbitmq.external.existingSecret.name)) "") (eq (trim (default "" .Values.workerBootstrap.existingSecret.name)) "") (eq (trim (default "" .Values.workerBootstrap.rabbitmqUrl)) "") -}}
+    {{- fail "bootstrapDevWorker.enabled=true requires rabbitmq.enabled=true, rabbitmq.external.url, rabbitmq.external.existingSecret.name, workerBootstrap.existingSecret.name, or workerBootstrap.rabbitmqUrl" -}}
   {{- end -}}
   {{- if and (not .Values.api.enabled) (eq (trim (default "" .Values.workerBootstrap.apiBaseUrl)) "") -}}
     {{- fail "bootstrapDevWorker.enabled=true with api.enabled=false requires workerBootstrap.apiBaseUrl" -}}
   {{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "releasea-platform.dependencies.validate" -}}
+{{- $apiEnv := .Values.api.env | default dict -}}
+{{- if and .Values.api.enabled (not .Values.mongodb.enabled) (eq (trim (coalesce (index $apiEnv "MONGO_URI") .Values.mongodb.external.uri .Values.mongodb.external.existingSecret.name "")) "") -}}
+  {{- fail "api.enabled=true requires mongodb.enabled=true, mongodb.external.uri, mongodb.external.existingSecret.name, or api.env.MONGO_URI" -}}
+{{- end -}}
+{{- if and .Values.api.enabled (not .Values.rabbitmq.enabled) (eq (trim (coalesce (index $apiEnv "RABBITMQ_URL") .Values.rabbitmq.external.url .Values.rabbitmq.external.existingSecret.name .Values.workerBootstrap.existingSecret.name "")) "") -}}
+  {{- fail "api.enabled=true requires rabbitmq.enabled=true, rabbitmq.external.url, rabbitmq.external.existingSecret.name, workerBootstrap.existingSecret.name, or api.env.RABBITMQ_URL" -}}
+{{- end -}}
+{{- if and .Values.staticNginx.enabled (not .Values.minio.enabled) (eq (trim (coalesce .Values.minio.external.endpoint .Values.workerBootstrap.minioEndpoint "")) "") -}}
+  {{- fail "staticNginx.enabled=true requires minio.enabled=true, minio.external.endpoint, or workerBootstrap.minioEndpoint" -}}
+{{- end -}}
+{{- if and .Values.workerBootstrap.enabled (not .Values.rabbitmq.enabled) (eq (trim (coalesce .Values.workerBootstrap.rabbitmqUrl .Values.rabbitmq.external.url .Values.rabbitmq.external.existingSecret.name .Values.workerBootstrap.existingSecret.name "")) "") -}}
+  {{- fail "workerBootstrap.enabled=true requires rabbitmq.enabled=true, rabbitmq.external.url, rabbitmq.external.existingSecret.name, workerBootstrap.existingSecret.name, or workerBootstrap.rabbitmqUrl" -}}
 {{- end -}}
 {{- end -}}
 

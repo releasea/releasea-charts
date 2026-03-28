@@ -1,0 +1,78 @@
+global:
+  routing:
+    mode: explicit
+    internalDomain: internal.example.com
+    externalDomain: apps.example.com
+
+bootstrapDevWorker:
+  enabled: false
+
+workerBootstrap:
+  existingSecret:
+    name: releasea-worker-bootstrap
+
+api:
+  replicaCount: 2
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+console:
+  replicaCount: 2
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+mongodb:
+  enabled: false
+  external:
+    existingSecret:
+      name: releasea-mongodb-external
+      uriKey: uri
+
+rabbitmq:
+  enabled: false
+  external:
+    existingSecret:
+      name: releasea-worker-bootstrap
+      urlKey: rabbitmqUrl
+
+minio:
+  enabled: false
+  external:
+    endpoint: s3.example.net
+    bucket: releasea-static
+    secure: true
+
+prometheus:
+  enabled: false
+  external:
+    url: https://prometheus.example.net
+
+loki:
+  enabled: false
+  external:
+    url: https://loki.example.net
+
+staticNginx:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi

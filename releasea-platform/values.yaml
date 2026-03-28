@@ -17,6 +17,11 @@ workerBootstrap:
   version: "1"
   platformNamespace: ""
   namespacePrefix: "releasea-apps"
+  existingSecret:
+    name: ""
+    rabbitmqUrlKey: "rabbitmqUrl"
+    minioAccessKeyKey: "minioAccessKey"
+    minioSecretKeyKey: "minioSecretKey"
   apiBaseUrl: ""
   rabbitmqUrl: ""
   minioEndpoint: ""
@@ -33,7 +38,7 @@ api:
   replicaCount: 1
   image:
     repository: releasea/releasea-api
-    tag: "v1.9.0"
+    tag: "v1.10.0"
   service:
     type: ClusterIP
     port: 8070
@@ -48,17 +53,13 @@ api:
     minAvailable: 1
   env:
     PORT: "8070"
-    MONGO_URI: mongodb://releasea-mongodb:27017/releasea
-    RABBITMQ_URL: amqp://releasea:releasea@releasea-rabbitmq:5672/
-    PROMETHEUS_URL: http://releasea-prometheus:9090
-    LOKI_URL: http://releasea-loki:3100
 
 console:
   enabled: true
   replicaCount: 1
   image:
     repository: releasea/releasea-console
-    tag: "v1.12.0"
+    tag: "v1.13.0"
   service:
     type: ClusterIP
     port: 8080
@@ -91,6 +92,11 @@ mongodb:
     enabled: false
     size: 8Gi
     storageClassName: ""
+  external:
+    uri: ""
+    existingSecret:
+      name: ""
+      uriKey: "uri"
 
 rabbitmq:
   enabled: true
@@ -111,6 +117,11 @@ rabbitmq:
   auth:
     username: releasea
     password: releasea
+  external:
+    url: ""
+    existingSecret:
+      name: ""
+      urlKey: "rabbitmqUrl"
 
 minio:
   enabled: true
@@ -132,6 +143,12 @@ minio:
     enabled: false
     size: 10Gi
     storageClassName: ""
+  external:
+    endpoint: ""
+    accessKey: ""
+    secretKey: ""
+    bucket: ""
+    secure: null
 
 staticNginx:
   enabled: true
@@ -160,6 +177,8 @@ prometheus:
     size: 20Gi
     storageClassName: ""
   resources: {}
+  external:
+    url: ""
 
 loki:
   enabled: true
@@ -182,3 +201,5 @@ loki:
   grafana:
     enabled: false
   resources: {}
+  external:
+    url: ""
