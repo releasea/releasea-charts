@@ -1,5 +1,5 @@
 apiVersion: v2
 name: releasea-worker
 description: Releasea worker agent deployed via Helm
-version: 1.13.6
-appVersion: "g828561dd"
+version: 0.1.0
+appVersion: "0.1.0"
