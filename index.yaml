@@ -1,0 +1,23 @@
+apiVersion: v1
+entries:
+  releasea-platform:
+  - apiVersion: v2
+    appVersion: g36235e07
+    created: "2026-03-29T23:32:22.015445939Z"
+    description: Install the full Releasea platform with optional peripheral services
+    digest: 77340a878feb754e57c98c68f35b97cfd0e5f1edd060faaf50d95c57bec7cf3c
+    name: releasea-platform
+    urls:
+    - https://github.com/releasea/releasea-charts/releases/download/v1.13.11/releasea-platform-1.13.11.tgz
+    version: 1.13.11
+  releasea-worker:
+  - apiVersion: v2
+    appVersion: g36235e07
+    created: "2026-03-29T23:32:22.015988799Z"
+    description: Releasea worker agent deployed via Helm
+    digest: 94c589910c3390d94189aac430c76fdc3b026f72fc6cb7f16b97c9c29d9a62ab
+    name: releasea-worker
+    urls:
+    - https://github.com/releasea/releasea-charts/releases/download/v1.13.11/releasea-worker-1.13.11.tgz
+    version: 1.13.11
+generated: "2026-03-29T23:32:22.014257409Z"
