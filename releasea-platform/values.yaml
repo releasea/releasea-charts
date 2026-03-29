@@ -38,7 +38,7 @@ api:
   replicaCount: 1
   image:
     repository: releasea/releasea-api
-    tag: "v1.10.3"
+    tag: "v1.10.4"
   service:
     type: ClusterIP
     port: 8070
@@ -59,7 +59,7 @@ console:
   replicaCount: 1
   image:
     repository: releasea/releasea-console
-    tag: "v1.13.9"
+    tag: "v1.13.10"
   service:
     type: ClusterIP
     port: 8080

@@ -25,7 +25,7 @@ global:
 
 image:
   repository: releasea/releasea-worker
-  tag: "v1.9.3"
+  tag: "v1.9.4"
   pullPolicy: IfNotPresent
 
 token: ""
