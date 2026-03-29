@@ -10,6 +10,10 @@ This chart includes API, Console, MongoDB, RabbitMQ, MinIO, Static Nginx, Promet
 > - [Installation Modes](https://docs.releasea.io/?doc=installation-modes)
 > - [Quickstart Validation](https://docs.releasea.io/?doc=smoke-checks)
 > - [Production Profile](https://docs.releasea.io/?doc=production-profile)
+> - [Production Architectures](https://docs.releasea.io/?doc=production-reference-architectures)
+> - [Upgrade Compatibility Matrix](https://docs.releasea.io/?doc=upgrade-compatibility-matrix)
+> - [Secret Rotation Patterns](https://docs.releasea.io/?doc=secret-rotation-patterns)
+> - [Diagnostics Bundle](https://docs.releasea.io/?doc=diagnostics-bundle)
 > - [Production Runbooks](https://docs.releasea.io/?doc=production-runbooks)
 > - [Environments & Workers](https://docs.releasea.io/?doc=environments-and-workers)
 
