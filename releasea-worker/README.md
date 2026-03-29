@@ -97,6 +97,8 @@ If the platform reuses an existing secret instead of creating `releasea-worker-b
 - `bootstrap.sharedConfig.keys.minioAccessKey`
 - `bootstrap.sharedConfig.keys.minioSecretKey`
 
+When the shared bootstrap Secret values are rotated, restart worker deployments so the new environment-variable values are picked up reliably. The operational sequence is documented in [Secret Rotation Patterns](https://docs.releasea.io/?doc=secret-rotation-patterns).
+
 ## Installation Modes
 
 Releasea exposes three public install paths:
@@ -226,6 +228,7 @@ Validate the platform baseline before adding standalone workers by running [Quic
 - Installation guide: [docs.releasea.io/?doc=installation](https://docs.releasea.io/?doc=installation)
 - Installation modes: [docs.releasea.io/?doc=installation-modes](https://docs.releasea.io/?doc=installation-modes)
 - Quickstart validation: [docs.releasea.io/?doc=smoke-checks](https://docs.releasea.io/?doc=smoke-checks)
+- Secret rotation patterns: [docs.releasea.io/?doc=secret-rotation-patterns](https://docs.releasea.io/?doc=secret-rotation-patterns)
 - Environments and workers: [docs.releasea.io/?doc=environments-and-workers](https://docs.releasea.io/?doc=environments-and-workers)
 - Public components: [docs.releasea.io/?doc=public-components](https://docs.releasea.io/?doc=public-components)
 
