@@ -25,4 +25,4 @@ This README is intentionally short and routes users to the detailed install docu
 
 ## License
 
-Apache 2.0 - See [LICENSE](LICENSE) for details.
+Apache 2.0 - See [docs.releasea.io/?doc=license-and-usage](https://docs.releasea.io/?doc=license-and-usage) for details.
