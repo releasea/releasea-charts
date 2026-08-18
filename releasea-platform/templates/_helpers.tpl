@@ -183,6 +183,9 @@ helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 
 {{- define "releasea-platform.dependencies.validate" -}}
 {{- $apiEnv := .Values.api.env | default dict -}}
+{{- if and (default false .Values.global.production) .Values.api.enabled (eq (trim (default "" .Values.api.existingSecret.name)) "") -}}
+  {{- fail "global.production=true requires api.existingSecret.name with API signing, encryption, and bootstrap credentials" -}}
+{{- end -}}
 {{- if and .Values.api.enabled (not .Values.mongodb.enabled) (eq (trim (coalesce (index $apiEnv "MONGO_URI") .Values.mongodb.external.uri .Values.mongodb.external.existingSecret.name "")) "") -}}
   {{- fail "api.enabled=true requires mongodb.enabled=true, mongodb.external.uri, mongodb.external.existingSecret.name, or api.env.MONGO_URI" -}}
 {{- end -}}
