@@ -9,6 +9,8 @@ bootstrapDevWorker:
 
 api:
   replicaCount: 2
+  env:
+    IDEMPOTENCY_BACKEND: mongo
   podDisruptionBudget:
     enabled: true
     minAvailable: 1
