@@ -200,7 +200,7 @@ Validate the platform baseline before adding standalone workers by running [Quic
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `resources` | CPU and memory resource limits | `{}` |
-| `securityContext` | Pod security context | `{}` |
+| `securityContext` | Container security context with privilege escalation disabled, all capabilities dropped, and RuntimeDefault seccomp | See `values.yaml` |
 | `nodeSelector` | Node selector labels | `{}` |
 | `tolerations` | Pod tolerations | `[]` |
 | `affinity` | Pod affinity rules | `{}` |
@@ -208,14 +208,14 @@ Validate the platform baseline before adding standalone workers by running [Quic
 | `serviceAccount.create` | Create a service account | `true` |
 | `serviceAccount.name` | Service account name | `""` |
 | `rbac.create` | Create RBAC resources | `true` |
-| `rbac.clusterAdmin` | Grant cluster-admin role | `true` |
-| `rbac.rules` | Custom RBAC rules | `[]` |
+| `rbac.clusterAdmin` | Grant cluster-admin role; keep disabled outside isolated development clusters | `false` |
+| `rbac.rules` | Scoped Kubernetes permissions used by the worker | See `values.yaml` |
 
 ### Docker-in-Docker Sidecar
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `dockerDinD.enabled` | Enable DinD sidecar for builds | `true` |
+| `dockerDinD.enabled` | Enable the privileged DinD sidecar for isolated build workers | `false` |
 | `dockerDinD.image` | DinD image | `docker:28.2.2-dind` |
 | `dockerDinD.pullPolicy` | Image pull policy | `IfNotPresent` |
 | `dockerDinD.args` | Extra daemon arguments | See `values.yaml` |

@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  helm-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.15.4
+      - run: helm lint ./releasea-worker
+      - run: helm lint ./releasea-platform
+      - run: helm lint ./releasea-platform -f ./releasea-platform/values-production.yaml
+      - run: helm lint ./releasea-platform -f ./releasea-platform/values-production-external.yaml
+      - name: Require production API secrets
+        run: |
+          if helm template releasea ./releasea-platform \
+            -f ./releasea-platform/values-production.yaml \
+            --set api.existingSecret.name= >/dev/null 2>&1; then
+            echo "Production rendering accepted missing API secrets."
+            exit 1
+          fi
+      - name: Validate standalone worker permissions
+        run: |
+          set -euo pipefail
+          rendered="$(helm template releasea ./releasea-worker)"
+          if printf '%s' "$rendered" | grep -Eq 'privileged: true|resources: \["\*"\]|verbs: \["\*"\]'; then
+            echo "Standalone worker rendered unsafe privileges."
+            exit 1
+          fi

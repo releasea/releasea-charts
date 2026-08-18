@@ -1,5 +1,6 @@
 {{- if .Values.api.enabled }}
 {{- $apiEnv := .Values.api.env | default dict }}
+{{- $apiSecretName := default "" .Values.api.existingSecret.name }}
 {{- $routingInternalDomain := include "releasea-platform.routing.internalDomain" . | trim }}
 {{- $routingExternalDomain := include "releasea-platform.routing.externalDomain" . | trim }}
 {{- $routingInternalGateway := include "releasea-platform.routing.internalGateway" . | trim }}
@@ -51,6 +52,11 @@
   "RABBITMQ_URL" true
   "PROMETHEUS_URL" true
   "LOKI_URL" true
+  "JWT_SECRET" true
+  "JWT_REFRESH_SECRET" true
+  "WORKER_JWT_SECRET" true
+  "CREDENTIAL_ENCRYPTION_KEY" true
+  "DEFAULT_ADMIN_PASSWORD" true
 }}
 apiVersion: apps/v1
 kind: Deployment
@@ -103,6 +109,33 @@ spec:
             - name: {{ $k }}
               value: {{ $v | quote }}
             {{- end }}
+            {{- end }}
+            {{- if ne $apiSecretName "" }}
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $apiSecretName }}
+                  key: {{ default "jwtSecret" .Values.api.existingSecret.jwtSecretKey }}
+            - name: JWT_REFRESH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $apiSecretName }}
+                  key: {{ default "jwtRefreshSecret" .Values.api.existingSecret.jwtRefreshSecretKey }}
+            - name: WORKER_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $apiSecretName }}
+                  key: {{ default "workerJwtSecret" .Values.api.existingSecret.workerJwtSecretKey }}
+            - name: CREDENTIAL_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $apiSecretName }}
+                  key: {{ default "credentialEncryptionKey" .Values.api.existingSecret.credentialEncryptionKey }}
+            - name: DEFAULT_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $apiSecretName }}
+                  key: {{ default "defaultAdminPassword" .Values.api.existingSecret.defaultAdminPasswordKey }}
             {{- end }}
             - name: RELEASEA_INTERNAL_DOMAIN
               value: {{ $internalDomain | quote }}
