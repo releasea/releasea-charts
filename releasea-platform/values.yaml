@@ -1,4 +1,5 @@
 global:
+  production: false
   imageTag: latest
   imagePullPolicy: IfNotPresent
   routing:
@@ -51,6 +52,13 @@ api:
   podDisruptionBudget:
     enabled: false
     minAvailable: 1
+  existingSecret:
+    name: ""
+    jwtSecretKey: "jwtSecret"
+    jwtRefreshSecretKey: "jwtRefreshSecret"
+    workerJwtSecretKey: "workerJwtSecret"
+    credentialEncryptionKey: "credentialEncryptionKey"
+    defaultAdminPasswordKey: "defaultAdminPassword"
   env:
     PORT: "8070"
 

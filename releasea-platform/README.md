@@ -233,6 +233,19 @@ helm upgrade --install releasea releasea/releasea-platform \
 
 For the secure production path, create Kubernetes Secrets first and let the chart reuse them through `existingSecret` references. The exact secret layout and runbook steps are in [Production Runbooks](https://docs.releasea.io/?doc=production-runbooks).
 
+Production values require an API Secret named `releasea-api-secrets` by default:
+
+```bash
+kubectl -n releasea-system create secret generic releasea-api-secrets \
+  --from-literal=jwtSecret="$(openssl rand -base64 48)" \
+  --from-literal=jwtRefreshSecret="$(openssl rand -base64 48)" \
+  --from-literal=workerJwtSecret="$(openssl rand -base64 48)" \
+  --from-literal=credentialEncryptionKey="$(openssl rand -base64 32)" \
+  --from-literal=defaultAdminPassword="$(openssl rand -base64 24)"
+```
+
+Store these values in the platform secret manager and keep the encryption key stable across API restarts. The example command is for initial provisioning and must not be committed to source control.
+
 Use the bundled file as a starting point, then review at minimum:
 
 - routing domains
@@ -361,6 +374,8 @@ The chart now exposes the core scheduling and durability knobs needed by the bun
 
 ### API
 
+Set `global.production=true` for production installations. This disables permissive credential fallback by requiring `api.existingSecret.name` during Helm rendering.
+
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `api.enabled` | Deploy the API server | `true` |
@@ -369,6 +384,7 @@ The chart now exposes the core scheduling and durability knobs needed by the bun
 | `api.image.tag` | API image tag (overrides global) | `""` |
 | `api.service.type` | Service type | `ClusterIP` |
 | `api.service.port` | Service port | `8070` |
+| `api.existingSecret.name` | Kubernetes Secret containing API signing, encryption, and bootstrap credentials; required when `global.production=true` | `""` |
 | `api.env` | Environment variables (key-value map). Routing and core dependency envs (`RELEASEA_*_DOMAIN`, `RELEASEA_*_GATEWAY`, `MONGO_URI`, `RABBITMQ_URL`, `PROMETHEUS_URL`, `LOKI_URL`) are computed by the chart unless explicitly overridden here. | See `values.yaml` |
 
 ### Console

@@ -1,4 +1,5 @@
 global:
+  production: true
   routing:
     mode: explicit
     internalDomain: internal.example.com
@@ -13,7 +14,10 @@ workerBootstrap:
 
 api:
   replicaCount: 2
+  existingSecret:
+    name: releasea-api-secrets
   env:
+    RELEASEA_RUNTIME_ENV: production
     IDEMPOTENCY_BACKEND: mongo
   podDisruptionBudget:
     enabled: true
