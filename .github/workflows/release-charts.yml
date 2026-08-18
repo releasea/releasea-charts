@@ -11,11 +11,16 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, '[skip charts publish]')"
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     concurrency:
       group: releasea-charts-publish
       cancel-in-progress: false
@@ -87,7 +92,21 @@ jobs:
 
           commit_msg="$(git log -1 --pretty=%B)"
           bump="$(semver_bump_type "${commit_msg}")"
-          if [ "${latest_tag}" = "v1.0.0" ] && ! git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | grep -q .; then
+          latest_tag_sha="$(git rev-list -n1 "${latest_tag}" 2>/dev/null || true)"
+          published_index="$(mktemp)"
+          published_index_available=false
+          latest_tag_published=false
+          if curl -fsSL "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/index.yaml?run=${GITHUB_RUN_ID}" -o "${published_index}"; then
+            published_index_available=true
+            if grep -q "version: ${latest_tag#v}$" "${published_index}"; then
+              latest_tag_published=true
+            fi
+          fi
+          if [ -n "${latest_tag_sha}" ] && [ "${latest_tag_sha}" = "${GITHUB_SHA}" ]; then
+            release_tag="${latest_tag}"
+          elif [ "${published_index_available}" = true ] && [ "${latest_tag_published}" = false ]; then
+            release_tag="${latest_tag}"
+          elif [ "${latest_tag}" = "v1.0.0" ] && ! git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | grep -q .; then
             release_tag="v1.0.0"
           else
             release_tag="$(semver_next "${latest_tag}" "${bump}")"
@@ -173,11 +192,6 @@ jobs:
             --version "${CHART_VERSION}" \
             --app-version "${APP_VERSION}"
 
-      - name: Configure Git
-        run: |
-          git config user.name "releasea-bot"
-          git config user.email "releasea-bot@releasea.io"
-
       - name: Create or update chart release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -199,36 +213,42 @@ jobs:
         run: |
           set -euo pipefail
           tag="${{ steps.meta.outputs.release_tag }}"
-          if [ -f index.yaml ]; then
-            cp -f index.yaml .dist/index.yaml
+          current_index="$(mktemp)"
+          if curl -fsSL "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/index.yaml?run=${GITHUB_RUN_ID}" -o "${current_index}"; then
             helm repo index .dist \
               --url "https://github.com/${{ github.repository }}/releases/download/${tag}" \
-              --merge .dist/index.yaml
+              --merge "${current_index}"
+          elif [ -f index.yaml ]; then
+            helm repo index .dist \
+              --url "https://github.com/${{ github.repository }}/releases/download/${tag}" \
+              --merge index.yaml
           else
             helm repo index .dist \
               --url "https://github.com/${{ github.repository }}/releases/download/${tag}"
           fi
 
-      - name: Publish chart metadata to repository
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Prepare Pages artifact
         run: |
           set -euo pipefail
-          cp -f .dist/index.yaml ./index.yaml
-          git add index.yaml
-          git add releasea-platform/Chart.yaml releasea-platform/values.yaml 2>/dev/null || true
-          git add releasea-worker/Chart.yaml releasea-worker/values.yaml 2>/dev/null || true
-          if git diff --cached --quiet; then
-            echo "No changes to commit."
-            exit 0
-          fi
-          git commit -m "chore(charts): release ${{ steps.meta.outputs.release_tag }} [skip charts publish]"
-          git push origin HEAD:main
+          mkdir -p .pages
+          cp -f .dist/index.yaml .pages/index.yaml
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .pages
+
+      - name: Deploy Helm repository index
+        id: deployment
+        uses: actions/deploy-pages@v4
 
       - name: Verify release and index
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          gh api "repos/${{ github.repository }}/contents/index.yaml?ref=main" >/dev/null
           gh release view "${{ steps.meta.outputs.release_tag }}" >/dev/null
+          grep -q "version: ${{ steps.meta.outputs.chart_version }}" .dist/index.yaml
