@@ -71,7 +71,12 @@ staticSite:
   nginxNamespace: ""
 
 resources: {}
-securityContext: {}
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
+  seccompProfile:
+    type: RuntimeDefault
 nodeSelector: {}
 tolerations: []
 affinity: {}
@@ -83,11 +88,42 @@ serviceAccount:
 
 rbac:
   create: true
-  clusterAdmin: true
-  rules: []
+  # Opting into cluster-admin grants the worker unrestricted control of the
+  # cluster. Keep it disabled and extend the scoped rules only when required.
+  clusterAdmin: false
+  rules:
+    - apiGroups: [""]
+      resources: ["namespaces"]
+      verbs: ["get", "list", "watch", "create", "patch"]
+    - apiGroups: [""]
+      resources: ["pods", "pods/log", "services", "configmaps", "secrets", "serviceaccounts", "persistentvolumeclaims", "events"]
+      verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    - apiGroups: ["apps"]
+      resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+      verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    - apiGroups: ["batch"]
+      resources: ["jobs", "cronjobs"]
+      verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    - apiGroups: ["autoscaling"]
+      resources: ["horizontalpodautoscalers"]
+      verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    - apiGroups: ["networking.k8s.io"]
+      resources: ["ingresses", "networkpolicies"]
+      verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    - apiGroups: ["policy"]
+      resources: ["poddisruptionbudgets"]
+      verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    - apiGroups: ["networking.istio.io"]
+      resources: ["virtualservices", "destinationrules", "gateways"]
+      verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    - apiGroups: ["security.istio.io"]
+      resources: ["authorizationpolicies", "peerauthentications"]
+      verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
 dockerDinD:
-  enabled: true
+  # Privileged Docker-in-Docker is opt-in. Prefer an external/rootless builder
+  # for production workers.
+  enabled: false
   image: "docker:28.2.2-dind"
   pullPolicy: IfNotPresent
   args:
