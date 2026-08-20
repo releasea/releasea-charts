@@ -360,6 +360,7 @@ The chart now exposes the core scheduling and durability knobs needed by the bun
 | `workerBootstrap` shared Secret name | Fixed shared Secret | `releasea-worker-bootstrap` |
 | `workerBootstrap.apiBaseUrl` | Worker API URL override (empty = generated) | `""` |
 | `workerBootstrap.rabbitmqUrl` | Worker RabbitMQ URL override (empty = generated) | `""` |
+| `workerBootstrap.registryHost` | Optional insecure registry host used by the managed development worker Docker daemon | `""` |
 | `workerBootstrap.minioEndpoint` | Worker MinIO endpoint override (empty = generated) | `""` |
 | `workerBootstrap.minioBucket` | Worker MinIO bucket override (empty = inherited from `minio.bucket`) | `""` |
 | `workerBootstrap.minioSecure` | Worker MinIO TLS override (null = inherited from `minio.secure`) | `null` |
