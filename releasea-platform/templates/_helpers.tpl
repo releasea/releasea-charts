@@ -160,7 +160,7 @@ helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 {{- end -}}
 
 {{- define "releasea-platform.bootstrapDevWorker.enabled" -}}
-{{- ternary "true" "false" (default true .Values.bootstrapDevWorker.enabled) -}}
+{{- ternary "true" "false" .Values.bootstrapDevWorker.enabled -}}
 {{- end -}}
 
 {{- define "releasea-platform.workerBootstrap.secretName" -}}
@@ -168,7 +168,7 @@ helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 {{- end -}}
 
 {{- define "releasea-platform.bootstrapDevWorker.validate" -}}
-{{- if (default true .Values.bootstrapDevWorker.enabled) -}}
+{{- if .Values.bootstrapDevWorker.enabled -}}
   {{- if not .Values.workerBootstrap.enabled -}}
     {{- fail "bootstrapDevWorker.enabled=true requires workerBootstrap.enabled=true" -}}
   {{- end -}}
