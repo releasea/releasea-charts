@@ -1,5 +1,5 @@
 {{- include "releasea-platform.bootstrapDevWorker.validate" . }}
-{{- if (default true .Values.bootstrapDevWorker.enabled) }}
+{{- if .Values.bootstrapDevWorker.enabled }}
 {{- $name := include "releasea-platform.bootstrapDevWorker.fullname" . }}
 {{- $serviceAccountName := include "releasea-platform.bootstrapDevWorker.serviceAccountName" . }}
 {{- $bootstrapConfigMapName := "releasea-worker-bootstrap" }}
@@ -43,7 +43,7 @@ rules:
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   - apiGroups: ["batch"]
     resources: ["jobs", "cronjobs"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
   - apiGroups: ["autoscaling"]
     resources: ["horizontalpodautoscalers"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
@@ -55,10 +55,10 @@ rules:
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   - apiGroups: ["networking.istio.io"]
     resources: ["virtualservices", "destinationrules", "gateways"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
   - apiGroups: ["security.istio.io"]
     resources: ["authorizationpolicies", "peerauthentications"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
