@@ -29,7 +29,7 @@
 {{- end }}
 {{- $workerBootstrapStaticService := default "releasea-static-nginx" .Values.workerBootstrap.staticNginxService }}
 {{- $workerBootstrapStaticNamespace := default $platformNamespace .Values.workerBootstrap.staticNginxNamespace }}
-{{- $bootstrapDevWorkerEnabled := default true .Values.bootstrapDevWorker.enabled }}
+{{- $bootstrapDevWorkerEnabled := .Values.bootstrapDevWorker.enabled }}
 {{- $bootstrapDevWorkerTokenSecretName := include "releasea-platform.bootstrapDevWorker.tokenSecretName" . | trim }}
 {{- $bootstrapDevWorkerID := "wkr-reg-bootstrap-dev" }}
 {{- $bootstrapDevWorkerName := "Development Worker" }}
