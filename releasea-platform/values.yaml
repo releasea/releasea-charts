@@ -18,6 +18,7 @@ workerBootstrap:
   version: "1"
   platformNamespace: ""
   namespacePrefix: "releasea-apps"
+  registryHost: ""
   existingSecret:
     name: ""
     rabbitmqUrlKey: "rabbitmqUrl"

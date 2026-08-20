@@ -13,9 +13,12 @@
 {{- $namespacePrefix := default "releasea-apps" .Values.workerBootstrap.namespacePrefix }}
 {{- $minioEndpoint := default (coalesce .Values.minio.external.endpoint (ternary (printf "releasea-minio.%s.svc.cluster.local:%v" $platformNamespace .Values.minio.service.apiPort) "" .Values.minio.enabled)) .Values.workerBootstrap.minioEndpoint }}
 {{- $minioBucket := default (coalesce .Values.minio.external.bucket .Values.minio.bucket) .Values.workerBootstrap.minioBucket }}
-{{- $minioSecure := .Values.workerBootstrap.minioSecure }}
-{{- if eq $minioSecure nil }}
-{{- $minioSecure = coalesce .Values.minio.external.secure .Values.minio.secure }}
+{{- $minioSecure := .Values.minio.secure }}
+{{- if kindIs "bool" .Values.minio.external.secure }}
+{{- $minioSecure = .Values.minio.external.secure }}
+{{- end }}
+{{- if kindIs "bool" .Values.workerBootstrap.minioSecure }}
+{{- $minioSecure = .Values.workerBootstrap.minioSecure }}
 {{- end }}
 {{- $minioAccessKey := coalesce .Values.minio.external.accessKey .Values.minio.accessKey }}
 {{- $minioSecretKey := coalesce .Values.minio.external.secretKey .Values.minio.secretKey }}
