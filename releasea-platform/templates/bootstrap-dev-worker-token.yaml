@@ -1,5 +1,5 @@
 {{- include "releasea-platform.bootstrapDevWorker.validate" . }}
-{{- if (default true .Values.bootstrapDevWorker.enabled) }}
+{{- if .Values.bootstrapDevWorker.enabled }}
 apiVersion: v1
 kind: Secret
 metadata:
