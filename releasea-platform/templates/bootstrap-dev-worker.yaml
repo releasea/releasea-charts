@@ -13,6 +13,7 @@
 {{- $workerEnvironment := "dev" }}
 {{- $workerTagList := list "dev" "build" }}
 {{- $workerTags := join "," $workerTagList }}
+{{- $registryHost := trim (default "" .Values.workerBootstrap.registryHost) }}
 {{- $workerImageTag := include "releasea-platform.imageTag" (list "" .Values.global.imageTag) }}
 {{- $workerImagePullPolicy := .Values.global.imagePullPolicy }}
 apiVersion: v1
@@ -240,7 +241,9 @@ spec:
             - "--host=tcp://0.0.0.0:2375"
             - "--host=unix:///var/run/docker.sock"
             - "--log-level=debug"
-            - "--insecure-registry=registry.localhost:5010"
+            {{- if $registryHost }}
+            - {{ printf "--insecure-registry=%s" $registryHost | quote }}
+            {{- end }}
             - "--max-concurrent-downloads=10"
           env:
             - name: DOCKER_TLS_CERTDIR
