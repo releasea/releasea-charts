@@ -243,7 +243,7 @@ jobs:
 
       - name: Deploy Helm repository index
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
       - name: Verify release and index
         env:
