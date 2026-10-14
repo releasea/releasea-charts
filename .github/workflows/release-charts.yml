@@ -252,3 +252,19 @@ jobs:
           set -euo pipefail
           gh release view "${{ steps.meta.outputs.release_tag }}" >/dev/null
           grep -q "version: ${{ steps.meta.outputs.chart_version }}" .dist/index.yaml
+
+  cleanup:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Delete old releases (keep last 2)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh api repos/${{ github.repository }}/releases --paginate --jq '.[] | select(.prerelease == false and .draft == false) | .tag_name' | sort -V | head -n -2 | while read tag; do
+            echo "Deleting release $tag"
+            gh release delete "$tag" --yes
+          done
