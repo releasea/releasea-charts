@@ -259,6 +259,7 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
       - name: Delete old releases (keep last 2)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
