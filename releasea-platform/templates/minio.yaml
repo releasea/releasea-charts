@@ -33,6 +33,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
+      securityContext:
+        fsGroup: 10001
+        fsGroupChangePolicy: OnRootMismatch
       {{- with .Values.minio.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -46,17 +49,20 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
-        - name: minio
+        - name: object-store
           image: {{ .Values.minio.image | quote }}
           args:
-            - server
             - /data
-            - --console-address
-            - ":{{ .Values.minio.service.consolePort }}"
           env:
-            - name: MINIO_ROOT_USER
+            - name: RUSTFS_ADDRESS
+              value: ":{{ .Values.minio.service.apiPort }}"
+            - name: RUSTFS_CONSOLE_ADDRESS
+              value: ":{{ .Values.minio.service.consolePort }}"
+            - name: RUSTFS_CONSOLE_ENABLE
+              value: "true"
+            - name: RUSTFS_ACCESS_KEY
               value: {{ .Values.minio.accessKey | quote }}
-            - name: MINIO_ROOT_PASSWORD
+            - name: RUSTFS_SECRET_KEY
               value: {{ .Values.minio.secretKey | quote }}
           ports:
             - containerPort: {{ .Values.minio.service.apiPort }}
