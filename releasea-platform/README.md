@@ -432,16 +432,16 @@ Set `global.production=true` for production installations. This disables permiss
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `minio.enabled` | Deploy MinIO | `true` |
-| `minio.image` | MinIO image | `minio/minio:latest` |
+| `minio.enabled` | Deploy the bundled S3-compatible object store | `true` |
+| `minio.image` | Bundled object-store image (the key is retained for compatibility) | `rustfs/rustfs:1.0.3` |
 | `minio.service.apiPort` | S3 API port | `9000` |
 | `minio.service.consolePort` | Web console port | `9001` |
-| `minio.accessKey` | Root username | `releasea` |
-| `minio.secretKey` | Root password | `releaseaadmin` |
+| `minio.accessKey` | Object-store access key | `releasea` |
+| `minio.secretKey` | Object-store secret key | `releaseaadmin` |
 | `minio.bucket` | Default bucket name | `releasea-static` |
 | `minio.persistence.enabled` | Enable persistent volume | `false` |
 | `minio.persistence.size` | PVC size | `10Gi` |
-| `minio.external.endpoint` | External MinIO or S3-compatible endpoint without scheme | `""` |
+| `minio.external.endpoint` | External S3-compatible endpoint without scheme | `""` |
 | `minio.external.accessKey` | External MinIO access key | `""` |
 | `minio.external.secretKey` | External MinIO secret key | `""` |
 | `minio.external.bucket` | External bucket override | `""` |
