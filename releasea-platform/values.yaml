@@ -134,7 +134,9 @@ rabbitmq:
 
 minio:
   enabled: true
-  image: minio/minio:latest
+  # S3-compatible local object store. The legacy `minio` key is retained for
+  # values-file compatibility with existing Releasea installations.
+  image: rustfs/rustfs:1.0.3
   service:
     type: ClusterIP
     apiPort: 9000
