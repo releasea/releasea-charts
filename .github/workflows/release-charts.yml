@@ -6,6 +6,7 @@ on:
     paths:
       - "releasea-platform/**"
       - "releasea-worker/**"
+      - "versions/images.yaml"
       - ".github/workflows/release-charts.yml"
   workflow_dispatch:
 
